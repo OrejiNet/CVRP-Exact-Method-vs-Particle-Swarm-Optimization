@@ -1,0 +1,36 @@
+# Claude Code / notas internas
+.claude/
+CLAUDE.md
+
+# Material de referencia con derechos de terceros (papers, material del curso)
+Contexto/
+Ayudantia/
+Presentación/
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.bbl
+*.bcf
+*.blg
+*.toc
+*.out
+*.run.xml
+*.synctex
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.lof
+*.lot
+
+# OS
+.DS_Store
+Thumbs.db

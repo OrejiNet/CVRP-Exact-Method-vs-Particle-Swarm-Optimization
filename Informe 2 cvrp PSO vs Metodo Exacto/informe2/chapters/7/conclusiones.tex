@@ -1,0 +1,37 @@
+% Conclusiones: recordar el problema, resumir hallazgos en relación con él, e
+% identificar implicaciones generales (según la pauta).
+
+Este trabajo abordó el \textit{Capacitated Vehicle Routing Problem}, problema
+$\mathcal{NP}$-hard de optimización combinatoria que consiste en diseñar rutas de costo
+mínimo para una flota homogénea de vehículos con capacidad limitada, esta vez mediante
+la metaheurística \textit{Particle Swarm Optimization}, y en contraste con el método
+exacto implementado en el Informe~1.
+
+Sobre las nueve instancias evaluadas, PSO con representación SR-1
+\parencite{ai2009particle} logró soluciones de calidad competitiva en el rango de tamaños
+compartido con el método exacto ($n\le33$): GAP promedio entre $0{,}03\%$ y $10{,}07\%$,
+llegando al óptimo exacto en \texttt{E-n23-k3}, y con un tiempo de ejecución acotado
+(máximo $0{,}306$~s en la instancia más grande evaluada, $n=101$) que nunca superó el
+segundo, frente a un método exacto cuyo tiempo pasó de $576{,}1$~s ($n=32$) a
+$17\,096{,}4$~s ($n=33$, sin certificar optimalidad). En las cuatro instancias
+adicionales fuera del alcance del método exacto ($n$ entre 60 y 101), PSO siguió
+entregando soluciones factibles y completas, aunque con un GAP mayor (entre $15{,}25\%$
+y $26{,}84\%$, con el máximo en la instancia más grande), reflejo de que la
+parametrización y el presupuesto fijo de iteraciones no escalan explícitamente con el
+tamaño del problema (Sección~\ref{sec:m2_limitaciones}).
+
+El resultado central de la comparación exacto vs.\ metaheurística es la
+\textit{complementariedad}, no la sustitución de un método por otro: el método exacto
+certifica optimalidad y es preferible sin ambigüedad mientras siga siendo tratable en
+tiempo razonable, pero esa tratabilidad se pierde de forma abrupta, no gradual: bastó un
+cliente adicional ($n=32\to33$ en el Informe~1) para pasar de minutos a horas sin
+certificado. PSO no ofrece esa garantía, pero mantiene un tiempo de ejecución acotado y
+predecible incluso en instancias que el método exacto nunca pudo abordar, a costa de un
+GAP que crece con el tamaño y que, en el peor caso observado aquí, no superó el
+$27\%$.
+
+La implicación general es que la elección entre ambos enfoques no depende de cuál es
+``mejor'' en abstracto, sino del tamaño de la instancia a resolver y de si la aplicación
+exige una garantía formal de optimalidad o puede operar con una solución de buena
+calidad obtenida en tiempo acotado: el método exacto certifica pero no escala; la
+metaheurística escala pero no certifica.

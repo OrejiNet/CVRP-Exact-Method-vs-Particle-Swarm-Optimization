@@ -1,0 +1,100 @@
+\section{Notación principal}
+\label{apx:notacion}
+
+\begin{longtable}{P{3cm}P{11cm}}
+\toprule
+\textbf{Símbolo} & \textbf{Descripción} \\
+\midrule
+\endhead
+$n$ & Número total de nodos del grafo, incluyendo el depósito. \\
+$V$ & Conjunto de nodos del grafo, $V = \{1, 2, \dots, n\}$. \\
+$V \setminus \{1\}$ & Conjunto de clientes (nodos distintos del depósito). \\
+$E$ & Conjunto de aristas del grafo completo no dirigido. \\
+$c_{ij}$ & Costo de recorrer la arista $\{i,j\}$. \\
+$d_i$ & Demanda del cliente $i$. \\
+$D$ & Capacidad homogénea de cada vehículo. \\
+$m$ & Número de vehículos. \\
+$\mathcal{R}$ & Conjunto de rutas de una solución. \\
+$z$ & Costo total (distancia recorrida) de una solución. \\
+\midrule
+\multicolumn{2}{l}{\textit{Particle Swarm Optimization}} \\
+\midrule
+$N$ & Número de partículas del enjambre. \\
+$d$ & Dimensión del espacio de búsqueda de PSO. \\
+$\mathbf{x}_i$ & Posición de la partícula $i$ (solución candidata codificada). \\
+$\mathbf{v}_i$ & Velocidad (desplazamiento) de la partícula $i$. \\
+$\mathbf{p}_i$ & Mejor posición histórica de la partícula $i$ (\textit{pbest}). \\
+$\mathbf{p}_g$ & Mejor posición del enjambre o del vecindario (\textit{gbest}). \\
+$w$ & Peso de inercia. \\
+$c_1,\, c_2$ & Coeficientes cognitivo y social. \\
+$\mathbf{r}_1,\, \mathbf{r}_2$ & Vectores aleatorios $\sim U(0,1)^d$. \\
+$\otimes$ & Producto de Hadamard (componente a componente). \\
+$\chi$ & Factor de constricción. \\
+\bottomrule
+\end{longtable}
+
+\section{Instancias de referencia}
+\label{apx:instancias}
+
+Las familias A, B y E de CVRPLIB se identifican mediante nombres del tipo
+\texttt{A-n32-k5}, donde la letra indica la familia, \texttt{n} corresponde al número
+total de nodos incluyendo depósito y \texttt{k} al número de vehículos de la solución de
+referencia. Esta convención facilita la trazabilidad experimental y la comparación entre
+estudios.
+
+\section{Código implementado}
+\label{apx:codigo}
+
+% TODO: reemplazar por la URL del repositorio una vez publicado.
+El código completo (módulo compartido \texttt{cvrp\_common.py} y los tres notebooks de
+parametrización, experimentación y análisis) está disponible en:
+\texttt{[TODO: enlace al repositorio]}.
+
+A continuación se incluyen dos fragmentos representativos de la implementación de
+referencia en Python puro (la versión efectivamente usada en las corridas está acelerada
+con Numba, Sección~\ref{sec:parametrizacion}, pero es funcionalmente idéntica y fue
+validada contra esta).
+
+\begin{lstlisting}[language=Python, caption={Decodificación SR-1: lista de prioridad de clientes (SPV) e inserción de menor costo.}, basicstyle=\ttfamily\scriptsize, breaklines=true]
+def decode_sr1(x, instance, n_vehicles, apply_local_search=True):
+    n = instance.n_customers
+    m = n_vehicles
+    dist = instance.dist
+    demands = instance.demands
+
+    priority_list = _priority_list(x[:n])  # SPV: argsort ascendente + 1
+    vehicle_priority = _vehicle_priority_matrix(x[n:n + 2*m], instance.coords, m)
+
+    routes = [[] for _ in range(m)]
+    loads = np.zeros(m)
+    unassigned = []
+
+    for customer in priority_list:
+        demand = demands[customer]
+        placed = False
+        for j in vehicle_priority[customer - 1]:
+            if loads[j] + demand > instance.capacity:
+                continue
+            pos, _delta = _best_insertion_cost(routes[j], customer, dist)
+            routes[j].insert(pos, customer)
+            loads[j] += demand
+            if apply_local_search:
+                routes[j] = _two_opt(routes[j], dist)
+            placed = True
+            break
+        if not placed:
+            unassigned.append(customer)  # penalizado en evaluate_particle
+    return routes, unassigned
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={Actualización de velocidad y posición del enjambre (Ecuaciones~\ref{eq:m2_velocidad}-\ref{eq:m2_posicion}).}, basicstyle=\ttfamily\scriptsize, breaklines=true]
+w = params.w0 + (t / max(params.n_iter - 1, 1)) * (params.wf - params.w0)
+r1 = rng.uniform(0, 1, size=(N, d))
+r2 = rng.uniform(0, 1, size=(N, d))
+V = w * V + params.c1 * r1 * (P - X) + params.c2 * r2 * (g[None, :] - X)
+V = np.clip(V, -v_max, v_max)
+X = X + V
+below, above = X < x_min, X > x_max
+X = np.clip(X, x_min, x_max)
+V[below | above] = 0.0  # reflejo de velocidad a 0 en el borde
+\end{lstlisting}

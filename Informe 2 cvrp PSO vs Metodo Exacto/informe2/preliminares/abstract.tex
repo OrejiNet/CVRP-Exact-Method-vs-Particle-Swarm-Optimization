@@ -1,0 +1,38 @@
+\clearpage
+\thispagestyle{empty}
+\begin{center}
+    \bfseries\fontsize{14}{16}\selectfont ABSTRACT
+\end{center}
+\vspace{16pt}
+
+\noindent
+The \textit{Capacitated Vehicle Routing Problem} (CVRP) is a classical combinatorial
+optimization problem in which a minimum-cost set of routes must be designed to serve
+customers with known demands by means of a homogeneous fleet of capacity-constrained
+vehicles. In Report~No.~1 the problem was addressed through exact mathematical
+programming methods, whose computational effort grows sharply with instance size. This
+report tackles the CVRP from the standpoint of \textit{metaheuristics}, implementing
+\textit{Particle Swarm Optimization} (PSO) as an approximate method able to obtain
+high-quality solutions without a certificate of optimality, and contrasts both
+approaches over a common set of instances. To adapt PSO, a continuous-domain
+algorithm, to the combinatorial search space of the CVRP, the SR-1 representation
+\parencite{ai2009particle} was implemented, which decodes each particle into a customer
+priority list and vehicle reference points, building feasible routes through
+least-cost insertion and 2-opt local improvement. PSO hyperparameters were calibrated
+with Optuna (60 trials) on tuning instances distinct from the evaluation set. The
+method was evaluated with 31 independent repetitions over nine CVRPLIB instances: the
+five from Report~1 (for direct comparison) and four additional, larger instances beyond
+the reach of the exact method. On the five shared instances, PSO achieved an average GAP
+between $0.03\%$ and $10.07\%$ with respect to the optimum, in sub-second runtimes,
+versus an exact method that took up to $4.7$ hours without certifying optimality on the
+largest shared instance. On the four additional instances, the average GAP ranged from
+$15.25\%$ to $26.84\%$, with the maximum on the largest instance. The comparison reveals
+a complementarity between
+both approaches: the exact method certifies optimality while it remains tractable, but
+loses tractability abruptly beyond a certain size; PSO does not certify optimality, but
+keeps bounded runtimes and solves instances considerably larger than those reachable by
+the exact method.
+
+\vspace{10pt}
+\noindent\textbf{Keywords:} CVRP; combinatorial optimization; metaheuristics;
+\textit{Particle Swarm Optimization}; PSO; CVRPLIB.

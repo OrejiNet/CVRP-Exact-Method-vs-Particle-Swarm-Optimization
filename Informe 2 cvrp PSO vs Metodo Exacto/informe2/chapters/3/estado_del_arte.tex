@@ -1,0 +1,130 @@
+El CVRP ha sido objeto de estudio sistemático en la literatura de investigación
+operacional desde su introducción a fines de los años cincuenta
+\parencite{dantzig1959truck}. Su carácter $\mathcal{NP}$-hard
+\parencite{lenstra1981complexity} explica que, junto a los métodos exactos revisados en
+el Informe~1, se haya desarrollado un amplio cuerpo de \textit{métodos aproximados}
+capaces de escalar a instancias industriales. En este informe el alcance se centra en
+las metaheurísticas y, en particular, en \textit{Particle Swarm Optimization}.
+
+\subsection{Metaheurísticas para el CVRP}
+
+Las metaheurísticas suelen clasificarse en métodos basados en \textit{trayectoria}, que
+operan sobre una única solución que se modifica iterativamente (como \textit{Tabu
+Search} o \textit{Simulated Annealing}), y métodos basados en \textit{población}, que
+mantienen y hacen evolucionar un conjunto de soluciones, como los algoritmos genéticos,
+\textit{Ant Colony Optimization} (ACO) y \textit{Particle Swarm Optimization} (PSO).
+La literatura de metaheurísticas para el CVRP es extensa y abarca desde algoritmos
+constructivos con búsqueda local hasta esquemas poblacionales sofisticados. Entre los
+métodos de trayectoria destacan la búsqueda tabú y el recocido simulado; entre los
+poblacionales, los algoritmos genéticos, ACO y PSO; y en años recientes, los esquemas de
+búsqueda de vecindario amplio (LNS/ALNS) figuran entre los enfoques aproximados más
+competitivos para las variantes del VRP \parencite{tan2021vehicle}. Todos estos métodos
+renuncian a la garantía de optimalidad a cambio de escalar a instancias de tamaño
+industrial, y con frecuencia se combinan con búsqueda local para intensificar la
+exploración del espacio de soluciones.
+
+El presente trabajo se sitúa dentro de los métodos poblacionales, adoptando PSO. Una
+revisión específica de su aplicación al problema de ruteo, con una comparación de sus
+principales variantes, se encuentra en \textcite{marinakis2018particle}, que sirve de
+referencia para los apartados siguientes.
+
+\subsection{Particle Swarm Optimization}
+
+PSO fue introducido por \textcite{kennedy1995particle} como un algoritmo de optimización
+inspirado en el comportamiento social de bandadas de aves y cardúmenes de peces. Cada
+\textit{partícula} representa una solución candidata que se desplaza por el espacio de
+búsqueda con una \textit{velocidad} actualizada en función de su mejor posición
+histórica (\textit{pbest}) y de la mejor posición del enjambre o del vecindario
+(\textit{gbest}). Contribuciones posteriores refinaron su dinámica: el
+\textit{peso de inercia} \parencite{shi1998modified} y el \textit{factor de constricción}
+\parencite{clerc2002particle} regulan el equilibrio entre exploración y explotación y
+garantizan estabilidad de la convergencia. Una síntesis unificada de estas variantes se
+encuentra en \textcite{poli2007particle}.
+
+% NOTA: La mecánica detallada de PSO (ecuaciones de velocidad y posición) va en el
+% Capítulo 3 (Método), no aquí. Aquí basta el posicionamiento en la literatura.
+
+\subsection{Adaptación de PSO a problemas combinatorios y al CVRP}
+\label{subsec:adaptacion_pso}
+
+La formulación canónica de PSO opera sobre un espacio continuo $\mathbb{R}^d$, mientras
+que el CVRP es un problema combinatorio cuyas soluciones son permutaciones y particiones
+de clientes. Como las nociones de velocidad y dirección carecen de un significado natural
+sobre recorridos y permutaciones \parencite{poli2007particle}, aplicar PSO al CVRP exige
+un mecanismo que relacione las posiciones continuas del enjambre con soluciones de ruteo
+factibles. La literatura ha abordado esta brecha por tres vías principales.
+
+\subsubsection{Codificación de valor real y decodificación}
+
+La vía más difundida conserva la dinámica continua de PSO y delega la traducción al
+espacio combinatorio a un procedimiento de \textit{decodificación}: la posición continua
+de una partícula se interpreta, típicamente ordenando sus componentes, como una lista de
+prioridad o una permutación de clientes, que luego se particiona en rutas respetando la
+capacidad. \textcite{ai2009particle} propusieron dos representaciones de referencia para
+el CVRP. La primera, SR-1, es un vector de $n+2m$ dimensiones cuyas primeras $n$
+componentes inducen una lista de prioridad de clientes (por orden ascendente de su
+valor) y cuyas últimas $2m$ componentes fijan puntos de referencia que orientan la
+asignación de clientes a vehículos; la segunda, SR-2, extiende esta idea con una
+representación alternativa. Ambas incorporan procedimientos de mejora local en la
+decodificación para elevar la calidad de las soluciones. Sobre esta misma línea,
+\textcite{ahmed2018bilayer} introdujeron un método de decodificación novedoso combinado
+con una búsqueda local en dos capas (BLS-PSO), que alcanza las mejores soluciones
+conocidas en la mayoría de las instancias de prueba; su resultado ilustra el papel
+determinante que cumplen tanto la decodificación como la hibridación con búsqueda local
+en el desempeño final.
+
+\subsubsection{PSO discreto}
+
+Una segunda vía redefine los operadores de PSO directamente sobre el espacio discreto,
+reinterpretando la velocidad como una secuencia de intercambios (\textit{swaps}) que
+transforma una permutación en otra. \textcite{chen2006hybrid} desarrollaron un PSO
+discreto (DPSO) para el CVRP que combina búsqueda global y local y se hibrida con
+recocido simulado para escapar de óptimos locales, reportando buen desempeño en
+instancias de gran tamaño. En una línea afín, \textcite{mauliddina2020implementation}
+implementaron un DPSO para el CVRP y ajustaron sus parámetros mediante un diseño
+experimental de un factor a la vez (OFAT), contrastando el resultado con modelos de PSO
+propuestos previamente.
+
+\subsubsection{Enfoques híbridos}
+
+Una tercera vía combina PSO con otras metaheurísticas o con esquemas de agrupamiento.
+\textcite{kao2012hybrid} propusieron un híbrido de ACO y PSO para el CVRP en el que cada
+hormiga memoriza su mejor solución, al estilo de una partícula. \textcite{son2021capacitated}
+adoptaron un enfoque en dos fases (agrupamiento de clientes mediante $k$-Means seguido de
+una fase de ruteo con un híbrido adaptativo de PSO y \textit{Grey Wolf Optimization}),
+obteniendo soluciones cercanas a las de los métodos exactos. Estas variantes evidencian
+una tendencia general: el PSO puro rara vez alcanza por sí solo las mejores soluciones
+conocidas, por lo que la hibridación con búsqueda local u otros mecanismos de
+intensificación es habitual en los mejores resultados reportados para el CVRP.
+
+\subsection{Posicionamiento del enfoque adoptado}
+
+El Informe~1 mostró que el esquema exacto certifica optimalidad sobre instancias pequeñas
+y medianas, pero pierde tratabilidad al crecer el tamaño del problema: el salto de $n=32$
+a $n=33$ bastó para desplazar la instancia fuera del rango resoluble a optimalidad dentro
+del presupuesto de tiempo. Este límite motiva el uso de una metaheurística, capaz de
+obtener soluciones de buena calidad en tiempos acotados sobre instancias que exceden el
+alcance del método exacto. Se adopta PSO por tratarse de un método poblacional
+ampliamente estudiado, de implementación relativamente simple y con una dinámica de
+búsqueda bien caracterizada \parencite{poli2007particle}.
+
+De las tres vías de adaptación revisadas en la Sección~\ref{subsec:adaptacion_pso}, este
+trabajo adopta la codificación de valor real con decodificación, siguiendo la
+representación SR de \textcite{ai2009particle}. La elección responde a tres razones.
+Primero, preserva la dinámica continua de PSO, de modo que las ecuaciones canónicas de
+velocidad y posición se aplican sin modificación, a diferencia del PSO discreto
+\parencite{chen2006hybrid}, que exige redefinir la velocidad como secuencias de
+intercambios. Segundo, constituye una representación de referencia para el CVRP, con un
+procedimiento de decodificación documentado que garantiza la factibilidad de capacidad de
+forma constructiva. Tercero, evita la complejidad de los esquemas híbridos o en dos fases
+\parencite{son2021capacitated,kao2012hybrid}, cuya infraestructura excede el alcance de
+este trabajo y dificultaría aislar el comportamiento propio de PSO.
+
+La revisión también muestra que los mejores resultados, como la obtención de las mejores
+soluciones conocidas, suelen provenir de variantes hibridadas con búsqueda local
+\parencite{ahmed2018bilayer}. No obstante, el objetivo de este informe no es competir por
+la mejor solución conocida, sino caracterizar el compromiso entre el método exacto y una
+metaheurística representativa; por ello se opta por una implementación de PSO con
+representación SR, transparente y bien comprendida, cuyo detalle se desarrolla en el
+Capítulo~\ref{cap:metodo}. La incorporación de búsqueda local se contempla como una
+posible extensión.

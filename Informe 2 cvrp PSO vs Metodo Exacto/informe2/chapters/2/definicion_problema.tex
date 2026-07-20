@@ -1,0 +1,38 @@
+\subsection{Definición del problema}
+
+El \textit{Capacitated Vehicle Routing Problem} (CVRP) consiste en diseñar un conjunto de
+rutas de costo mínimo para abastecer a un conjunto de clientes con demanda conocida,
+empleando una flota homogénea de vehículos con capacidad limitada que parten y retornan a
+un depósito central. Cada cliente debe ser visitado exactamente una vez por un único
+vehículo, y la demanda acumulada de los clientes asignados a una ruta no puede exceder la
+capacidad del vehículo.
+
+\subsection{Formulación matemática}
+
+Sea $G=(V,E)$ un grafo completo no dirigido, donde $V=\{1,2,\dots,n\}$ es el conjunto de
+nodos, con el nodo $1$ representando el depósito, y $E$ el conjunto de aristas. Cada
+cliente $i\in V\setminus\{1\}$ posee una demanda $d_i \ge 0$, y cada arista
+$\{i,j\}\in E$ tiene un costo $c_{ij}=c_{ji}$ (problema simétrico). Se considera una flota
+homogénea de $m$ vehículos, todos con capacidad $D$. Una solución es un conjunto de rutas
+$\mathcal{R}$, cada una un ciclo que parte y retorna al depósito, tal que cada cliente es
+visitado exactamente una vez y la demanda acumulada de cada ruta no excede $D$.
+
+La función objetivo minimiza la distancia total recorrida por la flota:
+\begin{equation}
+    \minimo \; z = \sum_{r \in \mathcal{R}} \sum_{\{i,j\} \in r} c_{ij},
+    \label{eq:m2_objetivo}
+\end{equation}
+sujeta a las condiciones de factibilidad: cada cliente pertenece exactamente a una ruta
+(las rutas particionan $V\setminus\{1\}$) y cada ruta $r\in\mathcal{R}$ respeta la
+capacidad,
+\begin{equation}
+    \sum_{i \in r} d_i \le D, \quad \forall\, r \in \mathcal{R}.
+    \label{eq:m2_capacidad}
+\end{equation}
+
+Esta es la misma definición del CVRP abordada en el Informe~1. La diferencia radica en el
+método de resolución: mientras el enfoque exacto formulaba el problema como un
+\textit{problema lineal entero} y lo resolvía sobre un grafo no dirigido, en este trabajo
+la metaheurística PSO no resuelve el modelo entero de forma directa, sino que explora el
+espacio de soluciones evaluando \eqref{eq:m2_objetivo} como función de aptitud y
+garantizando \eqref{eq:m2_capacidad} en la etapa de decodificación (Capítulo~\ref{cap:metodo}).

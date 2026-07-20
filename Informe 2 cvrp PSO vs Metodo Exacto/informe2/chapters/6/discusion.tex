@@ -1,0 +1,84 @@
+PSO logró soluciones de calidad competitiva en las instancias chicas y medianas: en las
+cinco compartidas con el método exacto ($n\le33$), el GAP promedio se mantuvo entre
+$0{,}03\%$ y $10{,}07\%$, tocando el óptimo exacto en \texttt{E-n23-k3} y quedando a menos
+de $5\%$ de él en tres de las otras cuatro. Este desempeño queda, con todo, por debajo
+del reportado por \textcite{ai2009particle} para la misma representación: su SR-1,
+aplicada con el algoritmo GLNPSO y un conjunto más amplio de mejoras locales, alcanza el
+óptimo exacto de \texttt{A-n33-k5} (661, Tabla~1 de ese trabajo), mientras que la mejor
+de las 31 corridas de este informe llegó a 697 en esa instancia; la diferencia es
+atribuible a la variante de PSO más simple usada aquí
+(Sección~\ref{sec:m2_limitaciones}). En las cuatro instancias agregadas para evaluar
+escalabilidad ($n\ge60$, fuera del alcance del método exacto), en cambio, el GAP
+promedio se ubicó entre $15{,}25\%$ y $26{,}84\%$, con el máximo en la instancia más
+grande (\texttt{E-n101-k8}, $n=101$): PSO sigue entregando una solución factible y
+razonable en todos los casos, pero su ventaja relativa en calidad se reduce claramente al
+alejarse del rango de tamaños usado para parametrizarlo.
+
+\subsection{Exacto vs.\ metaheurística}
+
+La comparación de la Sección~\ref{sec:m2_comparacion} deja ver con claridad el
+compromiso entre \textit{garantía} y \textit{escalabilidad} que motiva este informe. El
+método exacto certifica optimalidad y, cuando puede hacerlo en tiempo razonable
+(instancias con $n\le32$), es la opción preferible sin ambigüedad: no hay ninguna razón
+para aceptar una solución aproximada cuando el óptimo se obtiene en menos de 10~minutos.
+Pero el salto observado en el Informe~1 entre $n=32$ (576{,}1~s) y $n=33$ (17\,096{,}4~s,
+sin certificar) muestra que esa tratabilidad no se degrada suavemente: se pierde de forma
+abrupta con apenas un cliente adicional. PSO, en el mismo rango, no muestra ningún
+quiebre comparable: su tiempo de ejecución crece de forma acotada con $n$ (de $0{,}066$~s
+en $n=13$ a $0{,}306$~s en $n=101$, Tabla~\ref{tab:m2_resultados_pso}), y sigue entregando
+una solución completa incluso en instancias que el método exacto nunca llegó a intentar.
+
+El punto en que la metaheurística se vuelve preferible no es, entonces, un umbral fijo de
+$n$, sino la pregunta de si la aplicación puede tolerar una solución sin garantía de
+optimalidad a cambio de una respuesta en tiempo acotado. Para instancias pequeñas donde el
+exacto es rápido, no hay motivo para preferir PSO; para instancias donde el exacto se
+vuelve intratable (como \texttt{A-n33-k5}, y con mayor razón las cuatro instancias más
+grandes de este informe, nunca intentadas por el exacto), PSO es la única alternativa de
+las dos que entrega una respuesta en un tiempo práctico, aun cuando esa respuesta pueda
+estar a un GAP de dos dígitos del óptimo real.
+
+\subsection{Limitaciones y trabajo futuro}
+\label{sec:m2_limitaciones}
+
+La implementación tiene dos limitaciones identificables a partir de los propios
+resultados. Ninguna se relaciona con la parametrización en sí, que se realizó de forma
+completa y sistemática con Optuna, sobre un espacio de búsqueda y un presupuesto de
+evaluaciones explícitos (Sección~\ref{sec:parametrizacion}); ambas provienen de
+decisiones de diseño del algoritmo y del protocolo experimental. Primero, se usó PSO
+canónico (gbest global, dos términos de velocidad, Ecuación~\ref{eq:m2_velocidad}),
+no la variante GLNPSO de \textcite{ai2009particle}, que agrega términos de mejor local
+(\textit{lbest}) y de mejor vecino según razón aptitud-distancia (\textit{nbest}); esta
+simplificación probablemente explica en parte por qué el GAP obtenido aquí es algo mayor
+al reportado por los autores originales para instancias de tamaño comparable. Segundo,
+el número de iteraciones $T$ se deriva de un presupuesto fijo de evaluaciones igual para
+todas las instancias ($T=\lfloor 50\,000/N\rfloor$, Sección~\ref{sec:parametrizacion}),
+sin ajustarse a que la dimensión del espacio de búsqueda ($n+2m$) crece con el tamaño de
+la instancia; el análisis de convergencia (Sección~\ref{sec:m2_comparacion}) mostró que
+la curva mediana de \texttt{E-n101-k8} todavía descendía en la última iteración
+disponible, a diferencia de \texttt{A-n32-k5}, que ya se había estabilizado bastante
+antes de agotar su presupuesto de iteraciones. A esto se suma que las instancias de
+tuning utilizadas (hasta $n=76$, Sección~\ref{sec:parametrizacion}) no cubren todo el
+rango evaluado (hasta $n=101$); esto no es una falla del proceso de parametrización, que
+se ejecutó igual para todas las escalas, sino una propiedad esperable de cualquier
+calibración empírica sobre un conjunto finito de instancias: los parámetros encontrados
+generalizan mejor cerca del rango en que fueron ajustados. Ambos factores (el presupuesto
+de iteraciones fijo y el alcance del tuning) son consistentes con el mayor GAP observado
+en las instancias más grandes, y ayudan a explicarlo (Tabla~\ref{tab:m2_resultados_pso}).
+
+Una limitación potencial de la propia representación SR-1, señalada por
+\textcite{ai2009particle} (Tabla~2 de ese trabajo, instancia \texttt{vrpnc9}), es que el
+mecanismo de asignación de clientes a un número fijo de vehículos puede, en casos raros,
+dejar clientes sin asignar. En las $279$ corridas realizadas para este informe (31
+repeticiones $\times$ 9 instancias) esto no ocurrió en ningún caso, por lo que no fue una
+limitación práctica aquí, pero se documenta como un riesgo inherente al esquema de
+codificación, no eliminado por la implementación.
+
+De estas limitaciones se desprenden mejoras concretas para trabajo futuro: incorporar
+los términos de vecindario social de GLNPSO (\textit{lbest}/\textit{nbest}) para acercar
+el desempeño al reportado en la literatura de referencia; escalar el número de
+iteraciones con la dimensión del problema en vez de mantenerlo fijo por presupuesto de
+evaluaciones; ampliar el conjunto de instancias de tuning para cubrir el rango completo
+de tamaños evaluados; e hibridar la búsqueda con procedimientos de mejora local
+adicionales más allá del 2-opt ya embebido en la decodificación (p. ej.\ \textit{or-opt}
+o intercambios entre rutas), en la línea de lo discutido para PSO memético en el
+Capítulo~3.

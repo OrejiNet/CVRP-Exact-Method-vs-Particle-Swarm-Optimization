@@ -1,0 +1,364 @@
+\subsection{Adquisición de datos e instancias}
+
+La evaluación del método se apoya en instancias estándar de la biblioteca
+\textit{Capacitated Vehicle Routing Problem Library} (CVRPLIB), repositorio ampliamente
+utilizado para contrastar algoritmos sobre un conjunto común de casos de prueba y
+soluciones de referencia \parencite{cvrplib}. Para permitir una comparación directa con
+el método exacto del Informe~1, se reutilizan las mismas cinco instancias de los
+Sets~E y~A; adicionalmente, se incorporan cuatro instancias de mayor tamaño que quedaron
+fuera del alcance del enfoque exacto, con el fin de evaluar la escalabilidad de PSO.
+
+Cada archivo \texttt{.vrp} se procesa para extraer el número de nodos, la capacidad
+vehicular $D$, y la demanda de cada nodo. La mayoría de las instancias sigue la
+convención \texttt{EUC\_2D} de TSPLIB utilizada por CVRPLIB, en la que el costo de cada
+arista es la distancia euclidiana entre coordenadas, redondeada al entero más cercano,
+$c_{ij} = \left[ \sqrt{(x_i-x_j)^2 + (y_i-y_j)^2} \right]$. La instancia \texttt{E-n13-k4}
+constituye una excepción: usa el tipo \texttt{EXPLICIT} (formato \texttt{LOWER\_ROW}), en
+el que la matriz de distancias se entrega directamente y no existen coordenadas. Dado que
+la representación SR-1 (Sección~\ref{sec:representacion}) requiere ubicar puntos de
+referencia de vehículos en un plano 2D, para esta instancia se generó un embedding
+aproximado mediante \textit{escalamiento multidimensional clásico} (\textit{classical
+MDS}) a partir de la matriz de distancias real; esta reconstrucción solo se usa como
+insumo interno del mecanismo de referencia del decodificador, mientras que todos los
+costos reportados se calculan siempre con la matriz de distancias original de la
+instancia, nunca con distancias derivadas del embedding.
+
+La Tabla~\ref{tab:m2_instancias} detalla el conjunto final de instancias evaluadas,
+distinguiendo aquellas con óptimo certificado (por el método exacto del Informe~1) de
+aquellas para las que solo se dispone de la mejor solución conocida (BKS, \textit{best
+known solution}), que no es necesariamente óptima.
+
+\begin{table}[H]
+\centering
+\caption{Instancias de evaluación. $n$ incluye el depósito; $m$ es el número de
+vehículos de la solución de referencia.}
+\label{tab:m2_instancias}
+\begin{tabular}{lrrrl}
+\hline
+Instancia & $n$ & $m$ & Referencia & Tipo de referencia \\
+\hline
+E-n13-k4  & 13  & 4  & 247  & Óptimo certificado (Informe~1) \\
+E-n22-k4  & 22  & 4  & 375  & Óptimo certificado (Informe~1) \\
+E-n23-k3  & 23  & 3  & 569  & Óptimo certificado (Informe~1) \\
+A-n32-k5  & 32  & 5  & 784  & Óptimo certificado (Informe~1) \\
+A-n33-k5  & 33  & 5  & 661  & BKS (Informe~1 no certificó: 667 tras 4{,}7~h) \\
+\hline
+A-n60-k9   & 60  & 9  & 1354 & BKS (CVRPLIB) \\
+A-n80-k10  & 80  & 10 & 1763 & BKS (CVRPLIB) \\
+E-n76-k10  & 76  & 10 & 830  & BKS (CVRPLIB) \\
+E-n101-k8  & 101 & 8  & 815  & BKS (CVRPLIB) \\
+\hline
+\end{tabular}
+\end{table}
+
+Las cuatro instancias bajo la línea separadora quedaron fuera del alcance del método
+exacto: extrapolando el crecimiento observado en el Informe~1 (576{,}1~s en $n=32$ a
+17\,096{,}4~s, 4{,}7~h, en $n=33$, sin certificar), resolverlas exactamente habría
+requerido un tiempo de cómputo no disponible para este trabajo.
+
+\subsection{Diseño del algoritmo PSO}
+
+\subsubsection{Representación: codificación y decodificación}
+\label{sec:representacion}
+
+El aspecto central del diseño es la traducción entre el espacio continuo en que opera
+PSO y el espacio combinatorio de soluciones del CVRP. Se adoptó la representación
+\textbf{SR-1} de \textcite{ai2009particle}, que mantiene la formulación canónica de PSO
+sin modificar sus ecuaciones de velocidad/posición (Sección~\ref{sec:representacion} del
+Capítulo~3 argumenta esta elección frente a las alternativas de PSO discreto e híbridos).
+
+\paragraph{Codificación.} Para una instancia con $n-1$ clientes y $m$ vehículos, una
+partícula es un vector real de $(n-1) + 2m$ dimensiones. Las primeras $n-1$ componentes
+son claves de prioridad, una por cliente; las siguientes $2m$ componentes fijan $m$
+puntos de referencia $(x_j^{\text{ref}}, y_j^{\text{ref}})$, uno por vehículo, en el
+mismo plano donde están los clientes.
+
+\paragraph{Decodificación.} A partir de la partícula se construyen, en orden:
+\begin{enumerate}
+    \item \textbf{Lista de prioridad de clientes.} Se ordenan las primeras $n-1$
+    componentes de menor a mayor valor (\textit{Smallest Position Value}, SPV); el orden
+    resultante de los índices de cliente es la lista de prioridad.
+    \item \textbf{Matriz de prioridad de vehículos.} Para cada cliente, se ordenan los
+    $m$ vehículos de menor a mayor distancia entre el cliente y el punto de referencia de
+    cada vehículo.
+    \item \textbf{Construcción de rutas.} Se recorre la lista de prioridad de clientes; a
+    cada cliente se lo intenta insertar, en la posición de menor costo adicional, en la
+    ruta del vehículo de mayor prioridad para ese cliente que aún tenga capacidad
+    disponible; si ningún vehículo lo admite sin violar la capacidad, se prueba con el
+    siguiente en la prioridad del cliente. Tras cada inserción exitosa se aplica de
+    inmediato el procedimiento de mejora local 2-opt sobre esa ruta.
+\end{enumerate}
+
+\paragraph{Ejemplo numérico.} Se reproduce el ejemplo original de \textcite{ai2009particle}
+para 6 clientes y 2 vehículos. Sea la partícula
+\[
+\mathbf{x} = (0{,}4,\; 0{,}2,\; 0{,}9,\; 0{,}5,\; 0{,}6,\; 0{,}1 \mid 0{,}8,\; 1{,}5,\; 0{,}3,\; 1{,}2),
+\]
+donde las primeras 6 componentes son las claves de los clientes $1,\ldots,6$ y las
+últimas 4 codifican los puntos de referencia $(0{,}8;\,0{,}3)$ del Vehículo~1 y
+$(1{,}5;\,1{,}2)$ del Vehículo~2. Ordenando las claves de los clientes de menor a mayor
+($0{,}1 < 0{,}2 < 0{,}4 < 0{,}5 < 0{,}6 < 0{,}9$) se obtiene la lista de prioridad
+$6,2,1,4,5,3$. Calculando la distancia de cada cliente a ambos puntos de referencia se
+obtiene, por ejemplo, que los clientes $1$ y $2$ están más cerca del Vehículo~2, mientras
+que los clientes $3$, $4$, $5$ y $6$ están más cerca del Vehículo~1. Insertando en ese
+orden de prioridad, respetando la capacidad, y aplicando 2-opt, se obtienen las rutas
+Vehículo~1: $0$-$6$-$3$-$4$-$5$-$0$ y Vehículo~2: $0$-$2$-$1$-$0$.
+
+\paragraph{Factibilidad.} A diferencia de esquemas basados en un \textit{split} sobre una
+gran gira (que abren una nueva ruta cada vez que se excede la capacidad), en SR-1 el
+número de vehículos $m$ es fijo y viene dado por la partícula misma. Esto implica que,
+en casos raros, ningún vehículo puede aceptar a un cliente sin violar su capacidad: el
+propio \textcite{ai2009particle} reporta este fenómeno (Tabla~2 de ese trabajo, instancia
+\texttt{vrpnc9}: ``\textit{all replications yielded infeasible solution}''). La
+Sección~\ref{sec:funcion-aptitud} describe cómo se trata este caso en la implementación.
+
+\subsubsection{Función de aptitud}
+\label{sec:funcion-aptitud}
+
+La aptitud de una partícula es el costo total \eqref{eq:m2_objetivo} de las rutas
+obtenidas al decodificarla. Cuando la decodificación deja uno o más clientes sin asignar
+a ningún vehículo (Sección~\ref{sec:representacion}), se añade una penalización fija y
+grande por cada cliente no asignado, de modo que estas partículas queden efectivamente
+descartadas por PSO sin impedir su evaluación. No se penaliza el exceso de capacidad
+propiamente tal, porque el mecanismo de inserción de SR-1 nunca genera una ruta que
+exceda $D$: por construcción, un cliente solo se inserta en un vehículo si su capacidad
+lo permite; el único modo de falla es que \emph{ningún} vehículo lo admita, no que se
+viole la capacidad de alguno.
+
+\subsubsection{Dinámica del enjambre}
+
+Cada partícula $i$ mantiene una posición $\mathbf{x}_i$ y una velocidad $\mathbf{v}_i$
+en $\mathbb{R}^{d}$. En cada iteración, la velocidad y la posición se actualizan según
+la formulación canónica con peso de inercia:
+\begin{align}
+    \mathbf{v}_i(t{+}1) &= w\,\mathbf{v}_i(t)
+        + c_1\,\mathbf{r}_1 \otimes \big(\mathbf{p}_i - \mathbf{x}_i(t)\big)
+        + c_2\,\mathbf{r}_2 \otimes \big(\mathbf{p}_g - \mathbf{x}_i(t)\big),
+        \label{eq:m2_velocidad}\\[2pt]
+    \mathbf{x}_i(t{+}1) &= \mathbf{x}_i(t) + \mathbf{v}_i(t{+}1),
+        \label{eq:m2_posicion}
+\end{align}
+donde $\mathbf{p}_i$ es la mejor posición histórica de la partícula (\textit{pbest}),
+$\mathbf{p}_g$ la mejor posición global del enjambre (\textit{gbest}, topología global,
+sin subdivisión en vecindarios), $w$ el peso de inercia, $c_1$ y $c_2$ los coeficientes
+cognitivo y social, $\mathbf{r}_1, \mathbf{r}_2 \sim U(0,1)^d$ vectores aleatorios y
+$\otimes$ el producto de Hadamard (componente a componente). El peso de inercia decae
+linealmente de $w_0$ a $w_f$ a lo largo de la corrida. La velocidad se acota
+componente a componente a $[-v_{\max}, v_{\max}]$; la posición se acota al rango
+$[0,1]$ (rango de las claves SPV y de los puntos de referencia), reflejando la velocidad
+a $0$ en las componentes que alcanzan el borde. El criterio de término es un número fijo
+de iteraciones $T$ (Sección~\ref{sec:parametrizacion}).
+
+\subsubsection{Pseudocódigo}
+
+El Algoritmo~\ref{alg:pso_cvrp} resume el esquema general de PSO para el CVRP, integrando
+la codificación, la decodificación a rutas, la evaluación de aptitud y la actualización del
+enjambre. La mejora local (2-opt) no se aplica como un paso adicional separado al final de
+cada iteración, sino que ya queda incorporada dentro de la propia decodificación
+(Sección~\ref{sec:representacion}), inmediatamente después de insertar cada cliente.
+
+\begin{algorithm}[H]
+\caption{PSO para el CVRP (representación SR-1)}
+\label{alg:pso_cvrp}
+\begin{algorithmic}[1]
+\Procedure{PSO-CVRP}{instancia, $N$, $w_0$, $w_f$, $c_1$, $c_2$, $v_{\max}$, $T$}
+    \State Inicializar posiciones $\mathbf{x}_i \sim U(0,1)^d$ y velocidades $\mathbf{v}_i \gets \mathbf{0}$ del enjambre de $N$ partículas
+    \For{cada partícula $i$}
+        \State Decodificar $\mathbf{x}_i$ a rutas y evaluar aptitud (Sección~\ref{sec:funcion-aptitud})
+        \State $\mathbf{p}_i \gets \mathbf{x}_i$
+    \EndFor
+    \State $\mathbf{p}_g \gets \arg\min_i \; \text{aptitud}(\mathbf{p}_i)$
+    \For{$t \gets 1 \ldots T$}
+        \State $w \gets w_0 + \frac{t}{T}(w_f - w_0)$
+        \For{cada partícula $i$}
+            \State Actualizar $\mathbf{v}_i$ (Ec.~\ref{eq:m2_velocidad}) y $\mathbf{x}_i$ (Ec.~\ref{eq:m2_posicion}); acotar a $v_{\max}$ y a $[0,1]$
+            \State Decodificar $\mathbf{x}_i$ y evaluar aptitud
+            \State \textbf{Si} aptitud mejora a $\mathbf{p}_i$ \textbf{entonces} $\mathbf{p}_i \gets \mathbf{x}_i$
+            \State \textbf{Si} aptitud mejora a $\mathbf{p}_g$ \textbf{entonces} $\mathbf{p}_g \gets \mathbf{x}_i$
+        \EndFor
+    \EndFor
+    \State \textbf{Devolver} rutas decodificadas de $\mathbf{p}_g$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Parámetros del algoritmo}
+
+Los parámetros del algoritmo y sus valores se resumen en la Tabla~\ref{tab:m2_parametros}.
+Su calibración se aborda en la Sección~\ref{sec:parametrizacion}.
+
+\begin{table}[H]
+\centering
+\caption{Parámetros del algoritmo PSO, encontrados mediante parametrización con Optuna
+(Sección~\ref{sec:parametrizacion}).}
+\label{tab:m2_parametros}
+\begin{tabular}{lll}
+\hline
+Parámetro & Símbolo & Valor \\
+\hline
+Tamaño del enjambre       & $N$        & 100 \\
+Peso de inercia inicial   & $w_0$      & 0{,}9116 \\
+Peso de inercia final     & $w_f$      & 0{,}2782 \\
+Coeficiente cognitivo     & $c_1$      & 2{,}4045 \\
+Coeficiente social        & $c_2$      & 1{,}1843 \\
+Velocidad máxima          & $v_{\max}$ & 0{,}3762 (fracción del rango $[0,1]$) \\
+Criterio de parada        & $T$        & 500 iteraciones (derivado del presupuesto, ver más abajo) \\
+Repeticiones por instancia& ---        & 31 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Parametrización}
+\label{sec:parametrizacion}
+
+El desempeño de PSO depende de sus parámetros ($N$, $w_0$, $w_f$, $c_1$, $c_2$,
+$v_{\max}$), por lo que su calibración se realiza de forma sistemática y reproducible,
+separando la fase de \textit{parametrización} de la fase de \textit{evaluación} para
+evitar sesgo por sobreajuste: el ajuste se efectúa sobre un subconjunto de instancias de
+\textit{tuning} distinto del conjunto de instancias sobre el que luego se reportan los
+resultados (Tabla~\ref{tab:m2_instancias}).
+
+\paragraph{Herramienta.} Se usó Optuna \parencite{akiba2019optuna}, con su
+muestreador bayesiano por defecto (\textit{Tree-structured Parzen Estimator}, TPE). Se
+prefirió Optuna sobre \textit{irace} porque el flujo de trabajo completo (parametrización,
+experimentación, análisis) se mantiene íntegramente en Python, sin depender de R como
+herramienta externa.
+
+\paragraph{Presupuesto de trials.} Se ejecutaron 60 \textit{trials}, siguiendo la
+heurística de fijar un presupuesto de aproximadamente $10\times$ el número de
+hiperparámetros a tunear (6 en este caso).
+
+\paragraph{Espacio de búsqueda e instancias de tuning.} La Tabla~\ref{tab:m2_espacio_busqueda}
+resume el espacio de búsqueda explorado. Se usaron tres instancias de tuning de tamaños
+crecientes y ninguna coincide con las de evaluación: \texttt{A-n34-k5} ($n=34$, chica),
+\texttt{A-n62-k8} ($n=62$, mediana) y \texttt{E-n76-k7} ($n=76$, grande). Se usa más de
+una instancia, y de tamaños distintos, para que los parámetros encontrados generalicen
+razonablemente entre escalas, y no solo a la escala de una única instancia pequeña.
+
+\begin{table}[H]
+\centering
+\caption{Espacio de búsqueda explorado por Optuna.}
+\label{tab:m2_espacio_busqueda}
+\begin{tabular}{ll}
+\hline
+Parámetro & Rango/valores \\
+\hline
+$N$          & $\{20, 30, 50, 80, 100\}$ \\
+$w_0$        & $[0{,}5,\, 0{,}95]$ \\
+$w_f$        & $[0{,}1,\, 0{,}5]$ \\
+$c_1$        & $[0{,}5,\, 2{,}5]$ \\
+$c_2$        & $[0{,}5,\, 2{,}5]$ \\
+$v_{\max}$ (fracción del rango) & $[0{,}1,\, 1{,}0]$ \\
+\hline
+\end{tabular}
+\end{table}
+
+\paragraph{Presupuesto de evaluaciones y derivación de $T$.} Cada corrida de PSO dispone
+de un presupuesto fijo de $50\,000$ evaluaciones de la función objetivo, igual en la
+parametrización y en la experimentación final. Como $N$ es parte del espacio de búsqueda,
+el número de iteraciones se deriva de él, $T = \lfloor 50\,000/N \rfloor$, de modo que
+todas las configuraciones evaluadas por Optuna consumen el mismo esfuerzo de cómputo
+independientemente de cuántas partículas usen.
+
+\paragraph{Resultado.} La mejor configuración encontrada (Tabla~\ref{tab:m2_parametros})
+obtuvo un GAP promedio de $8{,}54\%$ sobre las tres instancias de tuning
+($3{,}34\%$ en \texttt{A-n34-k5}, $7{,}92\%$ en \texttt{A-n62-k8} y $14{,}37\%$ en
+\texttt{E-n76-k7}). El GAP crece con el tamaño de la instancia de tuning, un patrón que
+se retoma en la Sección~\ref{sec:m2_comparacion} al discutir cómo generaliza esta
+parametrización a las instancias de evaluación más grandes.
+
+\subsection{Implementación computacional}
+
+La implementación se desarrolló en Python 3.12, apoyándose en NumPy
+\parencite{harris2020array} para las operaciones vectorizadas del enjambre y en
+Numba \parencite{lam2015numba} (compilación \textit{just-in-time}, modo
+\texttt{nopython}) para acelerar el núcleo de decodificación SR-1 (construcción de rutas
+y 2-opt), que opera con estructuras de largo variable difíciles de vectorizar
+directamente con NumPy. Esta aceleración fue necesaria en la práctica: la versión en
+Python puro evaluaba entre 680 y 2\,850 partículas por segundo según el tamaño de la
+instancia, lo que habría hecho impracticable la parametrización completa con Optuna
+(más de 2~horas solo para esa fase); la versión acelerada con Numba, validada para dar
+resultados idénticos a la versión de referencia en Python puro, evalúa entre
+$130\,000$ y $200\,000$ partículas por segundo, reduciendo la parametrización completa
+(60 \textit{trials}) a menos de un minuto. La búsqueda de hiperparámetros se realizó con
+Optuna 4.9 \parencite{akiba2019optuna}.
+
+Los experimentos se ejecutaron localmente en un equipo de escritorio con procesador
+Intel Core i9-11900K (8 núcleos, 3{,}50\,GHz), 32\,GB de RAM y Windows~11 Home. Este es
+el mismo equipo, con la misma configuración de hardware, en el que se ejecutó la
+experimentación definitiva del método exacto del Informe~1: si bien las pruebas
+iniciales de ese informe se validaron en Google Colab, los tiempos reportados y
+utilizados en la comparación de la Sección~\ref{sec:m2_comparacion} (incluidos los
+$576{,}1$~s de \texttt{A-n32-k5} y los $17\,096{,}4$~s de \texttt{A-n33-k5}) provienen de
+la ejecución definitiva en este mismo equipo local. La comparación de tiempos entre
+ambos métodos no está, por lo tanto, sujeta a un sesgo de infraestructura.
+
+% TODO: enlazar el repositorio con el código completo (cvrp_common.py y notebooks de
+% parametrización, experimentación y análisis) una vez publicado.
+
+\subsection{Diseño experimental y protocolo de comparación}
+
+La Figura~\ref{fig:m2_diseno_experimental} resume el flujo experimental completo, desde
+la parametrización hasta la comparación final con el método exacto.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        box/.style={draw, rounded corners, align=center, minimum height=1.1cm, minimum width=3.1cm, font=\small},
+        arr/.style={-{Latex[length=2mm]}, thick},
+        node distance=0.9cm and 0.6cm
+    ]
+        \node[box] (tuning) {3 instancias de tuning\\(A-n34-k5, A-n62-k8, E-n76-k7)};
+        \node[box, right=of tuning] (param) {Parametrización\\(Optuna, 60 trials)};
+        \node[box, right=of param] (best) {Parámetros óptimos\\(Tabla~\ref{tab:m2_parametros})};
+        \node[box, below=of best] (exp) {Experimentación\\(31 repeticiones $\times$ 9 instancias)};
+        \node[box, left=of exp] (eval) {9 instancias de evaluación\\(Tabla~\ref{tab:m2_instancias})};
+        \node[box, left=of eval] (exacto) {Método exacto\\(Informe~1, 5 instancias)};
+        \node[box, below=of exp] (analisis) {Análisis comparativo\\(Sección~\ref{sec:m2_comparacion})};
+
+        \draw[arr] (tuning) -- (param);
+        \draw[arr] (param) -- (best);
+        \draw[arr] (best) -- (exp);
+        \draw[arr] (eval) -- (exp);
+        \draw[arr] (exp) -- (analisis);
+        \draw[arr] (exacto) -- (analisis);
+    \end{tikzpicture}
+    \caption{Diseño experimental: las instancias de tuning (parametrización) están
+    separadas de las de evaluación (experimentación), y el método exacto del Informe~1
+    se incorpora directamente en la etapa de análisis, sin volver a ejecutarse.
+    Fuente: elaboración propia.}
+    \label{fig:m2_diseno_experimental}
+\end{figure}
+
+La \textbf{variable independiente} evaluada es el método de resolución (exacto vs.\ PSO),
+contrastado por instancia; dentro de PSO, la semilla de cada repetición es una fuente de
+variabilidad estocástica controlada mediante las 31 repeticiones independientes, no una
+variable de interés en sí misma. A diferencia del método exacto, que es determinista,
+PSO es un algoritmo \textit{estocástico}: distintas semillas producen distintas
+trayectorias de búsqueda. Por ello, cada instancia se resuelve con 31 repeticiones
+independientes (semillas $0,\ldots,30$), y se reportan estadísticos agregados (mejor,
+promedio, desviación estándar) en lugar de un único valor. No se aplica un test
+estadístico inferencial en la comparación central de este informe porque uno de los dos
+métodos comparados (el exacto) es determinista y entrega un único valor por instancia,
+no una distribución: la comparación pertinente es directa, verificando dónde se ubica
+ese valor único respecto de la distribución completa de las 31 corridas de PSO, que se
+reporta íntegramente (Figura~\ref{fig:m2_boxplot_gap}). Los tests no paramétricos de
+comparación de muestras (como Wilcoxon o Friedman) aplican al comparar dos o más
+algoritmos estocásticos entre sí, caso que no se da aquí.
+
+Las métricas registradas son: el costo de la mejor solución encontrada y el costo
+promedio $\pm$ desviación estándar sobre las 31 repeticiones; el GAP porcentual
+respecto al óptimo o BKS de cada instancia,
+\begin{equation}
+    \text{GAP}\,(\%) = \frac{z_{\text{obtenido}} - z_{\text{referencia}}}{z_{\text{referencia}}} \times 100;
+\end{equation}
+y el tiempo de ejecución promedio por corrida.
+
+El contraste entre el método exacto y PSO (requisito~8 del enunciado,
+Sección~\ref{sec:m2_comparacion}) no iguala el presupuesto de cómputo entre ambos
+métodos: mientras que igualar el número de evaluaciones de la función objetivo tendría
+sentido al comparar dos metaheurísticas entre sí, no es aplicable aquí, porque el método
+exacto no tiene una noción de ``evaluaciones'' comparable y su costo temporal es una
+consecuencia directa de certificar (o no) la optimalidad, no un presupuesto que se le
+imponga externamente. Por eso, contra el método exacto se reporta el costo propio de
+cada enfoque tal como se ejecutó en su respectivo informe.

@@ -1,0 +1,14 @@
+Mejores parametros PSO (Optuna, 60 trials, presupuesto 50000 evals):
+  N (particulas)    = 100
+  T (iteraciones)   = 500
+  w0                = 0.9116
+  wf                = 0.2782
+  c1                = 2.4045
+  c2                = 1.1843
+  v_max (fraccion)  = 0.3762
+  GAP%% promedio (tuning) = 8.5436
+
+Detalle por instancia de tuning:
+  A-n34-k5: costo=804.0 BKS=778.0 GAP%=3.3419
+  A-n62-k8: costo=1390.0 BKS=1288.0 GAP%=7.9193
+  E-n76-k7: costo=780.0 BKS=682.0 GAP%=14.3695

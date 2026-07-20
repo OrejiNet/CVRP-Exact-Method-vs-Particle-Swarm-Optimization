@@ -1,0 +1,39 @@
+\clearpage
+\thispagestyle{empty}
+\begin{center}
+    \bfseries\fontsize{14}{16}\selectfont RESUMEN
+\end{center}
+\vspace{16pt}
+
+\noindent
+El \textit{Capacitated Vehicle Routing Problem} (CVRP) es un problema clásico de
+optimización combinatoria en el que se debe determinar un conjunto de rutas de costo
+mínimo para abastecer clientes con demandas conocidas mediante una flota homogénea de
+vehículos con capacidad limitada. En el Informe~Nro.~1 este problema se abordó mediante
+métodos exactos de programación matemática, cuyo esfuerzo computacional crece de forma
+abrupta con el tamaño de la instancia. El presente informe aborda el CVRP desde la
+perspectiva de las \textit{metaheurísticas}, implementando \textit{Particle Swarm
+Optimization} (PSO) como método aproximado capaz de obtener soluciones de alta calidad
+sin certificado de optimalidad, y contrasta ambos enfoques sobre un conjunto común de
+instancias. Para adaptar PSO, un algoritmo de naturaleza continua, al espacio combinatorio
+del CVRP, se implementó la representación SR-1 \parencite{ai2009particle}, que decodifica
+cada partícula a una lista de prioridad de clientes y puntos de referencia de vehículos,
+construyendo rutas factibles mediante inserción de menor costo y mejora local 2-opt. Los
+hiperparámetros de PSO se calibraron con Optuna (60 \textit{trials}) sobre instancias de
+tuning distintas de las de evaluación. El método se evaluó con 31 repeticiones
+independientes sobre nueve instancias de CVRPLIB: las cinco del Informe~1 (para
+comparación directa) y cuatro adicionales de mayor tamaño, fuera del alcance del método
+exacto. En las cinco instancias compartidas, PSO obtuvo un GAP promedio entre $0{,}03\%$
+y $10{,}07\%$ respecto al óptimo, en tiempos de ejecución de fracciones de segundo,
+frente a un método exacto que llegó a tardar $4{,}7$ horas sin certificar optimalidad en la
+instancia más grande compartida. En las cuatro instancias adicionales, el GAP promedio
+se ubicó entre $15{,}25\%$ y $26{,}84\%$, con el máximo en la instancia más grande. La
+comparación evidencia una
+complementariedad entre ambos enfoques: el método exacto certifica optimalidad mientras
+es tratable, pero pierde esa tratabilidad de forma abrupta más allá de cierto tamaño;
+PSO no certifica, pero mantiene tiempos acotados y resuelve instancias considerablemente
+mayores que las alcanzables por el método exacto.
+
+\vspace{10pt}
+\noindent\textbf{Palabras clave:} CVRP; optimización combinatoria; metaheurísticas;
+\textit{Particle Swarm Optimization}; PSO; CVRPLIB.

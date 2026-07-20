@@ -1,0 +1,110 @@
+Los problemas de ruteo de vehículos ocupan un lugar central en la investigación de
+operaciones, ya que articulan decisiones de asignación, secuenciamiento y transporte
+bajo restricciones operacionales. Entre sus variantes, el \textit{Capacitated Vehicle
+Routing Problem} (CVRP) destaca como un modelo base para estudiar la distribución
+física de mercancías desde un depósito central hacia clientes con demanda conocida,
+cuando la capacidad de carga de cada vehículo es limitada
+\parencite{toth2002vehicle}.
+
+En el Informe~Nro.~1 este problema se abordó mediante métodos exactos de programación
+matemática, capaces de certificar optimalidad sobre instancias pequeñas y medianas,
+pero cuyo esfuerzo computacional crece de forma abrupta con el tamaño de la instancia.
+El presente informe complementa ese trabajo abordando el CVRP mediante una
+\textit{metaheurística}, \textit{Particle Swarm Optimization} (PSO), y contrastando
+ambos enfoques sobre un conjunto común de instancias, según lo requerido por el
+enunciado del trabajo de investigación.
+
+\subsection{Contexto y motivación}
+
+El interés práctico por el CVRP proviene de la necesidad de diseñar redes de
+distribución con bajo costo total y alto nivel de servicio. En operaciones logísticas
+reales, una planificación de rutas deficiente incrementa kilómetros recorridos,
+horas-hombre, consumo de combustible y uso de flota, deteriorando la competitividad del
+sistema. Desde una perspectiva de modelación, el CVRP representa la interacción entre
+decisiones de partición de clientes en rutas y decisiones de ordenamiento de visitas
+dentro de cada recorrido, lo que lo convierte en un problema estructuralmente complejo.
+
+Dos contextos de aplicación ilustran esta relevancia. En distribución de retail y
+comercio mayorista, un centro de distribución debe abastecer múltiples locales o puntos
+de venta con una flota propia o subcontratada; aquí, el cumplimiento de capacidad y la
+consolidación eficiente de carga son determinantes para reducir costos de transporte y
+frecuencia de despachos. En recolección de residuos domiciliarios, los camiones deben
+visitar sectores urbanos completos, respetando la capacidad de compactación antes de
+retornar al depósito o estación de descarga; en este caso, la factibilidad operacional
+de cada ruta depende directamente de la demanda acumulada por sector. En ambos
+escenarios, el CVRP entrega una representación matemática suficientemente rica para
+apoyar decisiones tácticas y operacionales.
+
+\subsection{Fundamentos teóricos}
+
+El CVRP pertenece a la familia de problemas $\mathcal{NP}$-hard y generaliza, entre
+otros, al problema del viajante de comercio cuando la capacidad es suficientemente
+grande o cuando se utiliza un solo vehículo \parencite{lenstra1981complexity}. Esta
+dificultad combinatoria motiva, más allá de los métodos exactos, el uso de
+\textit{metaheurísticas}: procedimientos de búsqueda de alto nivel que exploran el
+espacio de soluciones guiados por reglas heurísticas, sacrificando la garantía de
+optimalidad a cambio de obtener soluciones de buena calidad en tiempos acotados sobre
+instancias que quedan fuera del alcance de los métodos exactos.
+
+Las metaheurísticas se dividen, a grandes rasgos, en aquellas de \textit{trayectoria}
+(refinan una única solución candidata, como la búsqueda tabú o el temple simulado) y
+aquellas \textit{basadas en población}, que evolucionan un conjunto de soluciones
+candidatas en paralelo. \textit{Particle Swarm Optimization} (PSO), introducido por
+\textcite{kennedy1995particle}, pertenece a esta segunda familia: un \textit{enjambre}
+de partículas explora el espacio de soluciones imitando el comportamiento colectivo de
+organismos sociales (bandadas de aves, cardúmenes). Cada partícula $i$ mantiene una
+posición $\mathbf{x}_i$, que codifica una solución candidata, y una velocidad
+$\mathbf{v}_i$, que representa su desplazamiento en cada iteración; la velocidad se
+actualiza combinando tres influencias: la inercia de su movimiento anterior, la
+atracción hacia su mejor posición histórica (\textit{pbest}) y la atracción hacia la
+mejor posición encontrada por el enjambre (\textit{gbest}), ponderadas respectivamente
+por un peso de inercia y por coeficientes de aceleración cognitivo y social
+\parencite{poli2007particle}.
+
+PSO fue formulado originalmente para dominios \textit{continuos}: la posición de una
+partícula es un vector real y su actualización es una simple suma vectorial
+posición-más-velocidad. El CVRP, en cambio, es un problema \textit{combinatorio}: una
+solución es un conjunto de rutas, no un punto en $\mathbb{R}^d$, y no existe una noción
+directa de ``sumar una velocidad'' a una partición de clientes en rutas. Este desajuste
+de dominios es el desafío central que debe resolverse para aplicar PSO al CVRP, y exige
+definir un esquema de \textit{codificación} (cómo un vector real representa una
+solución del CVRP) y su correspondiente procedimiento de \textit{decodificación} (cómo
+recuperar un conjunto de rutas factible a partir de ese vector). La decisión de diseño
+concreta adoptada en este trabajo para resolver ese desajuste se presenta en el
+Capítulo~\ref{cap:metodo}, tras revisar en el Capítulo~\ref{cap:estado-arte} las
+alternativas consideradas en la literatura.
+
+\subsection{Objetivos}
+
+El objetivo general de este informe es resolver el CVRP mediante la metaheurística
+\textit{Particle Swarm Optimization} y comparar su desempeño con el método exacto
+implementado en el Informe~Nro.~1, sobre instancias estándar de la literatura.
+
+Los objetivos específicos son los siguientes:
+\begin{enumerate}
+    \item Revisar el estado del arte de las metaheurísticas aplicadas al CVRP,
+          posicionando PSO dentro de dicho panorama.
+    \item Definir un esquema de representación (codificación y decodificación) que
+          permita aplicar PSO, algoritmo de naturaleza continua, sobre el espacio de
+          soluciones combinatorio del CVRP.
+    \item Implementar computacionalmente el algoritmo PSO para el CVRP, incluyendo el
+          manejo de las restricciones de capacidad y la construcción de rutas
+          factibles.
+    \item Evaluar el método sobre instancias de los Sets E y A de CVRPLIB (las mismas
+          empleadas en el Informe~1) y, adicionalmente, sobre instancias de mayor
+          tamaño que exceden el alcance del método exacto.
+    \item Contrastar los resultados de PSO frente al método exacto en términos de
+          calidad de solución (gap respecto del óptimo o de la mejor solución
+          conocida), tiempo de ejecución y escalabilidad.
+\end{enumerate}
+
+\subsection{Organización del informe}
+
+El Capítulo~2 presenta la definición del problema y su formulación matemática sobre un
+grafo no dirigido. El Capítulo~3 resume el estado del arte de las metaheurísticas para el
+CVRP, posicionando PSO dentro de ese panorama. El Capítulo~4 describe el diseño del
+algoritmo PSO, con énfasis en el esquema de codificación/decodificación, la
+parametrización y el protocolo experimental. El Capítulo~5 reporta los resultados de la
+experimentación computacional. El Capítulo~6 discute los hallazgos y desarrolla la
+comparación entre el enfoque exacto y el metaheurístico. Finalmente, el Capítulo~7
+presenta las conclusiones.
