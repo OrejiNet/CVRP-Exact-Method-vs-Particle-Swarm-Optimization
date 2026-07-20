@@ -1,0 +1,323 @@
+\documentclass[letterpaper,12pt]{article}
+
+% ============================================================
+%  PAQUETES
+% ============================================================
+\usepackage[spanish]{babel}
+\renewcommand{\tablename}{Tabla}
+\usepackage[T1]{fontenc}
+\usepackage{setspace}
+\usepackage{titlesec}
+% TeX Gyre Heros = equivalente libre de Arial, disponible en Overleaf sin timeout
+\usepackage{tgheros}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{tocloft}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{algorithmicx}
+\usepackage{csquotes}
+\usepackage[style=apa, backend=biber]{biblatex}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\DeclareMathOperator*{\minimo}{m\acute{\imath}n}
+\usepackage{enumitem}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{etoolbox}
+\usepackage{caption}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\floatname{algorithm}{Algoritmo}
+\usepackage{multirow}
+\usepackage{appendix}
+\usetikzlibrary{shapes,arrows,positioning,arrows.meta}
+\usepackage{subcaption}
+\usepackage{lmodern}
+\usepackage{fancyhdr}
+\usepackage{ragged2e}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{rotating}
+\usepackage{adjustbox}
+\usepackage{siunitx}
+
+\makeatletter
+\providecommand*{\toclevel@algorithm}{1}
+\providecommand*{\toclevel@lstlisting}{1}
+\makeatother
+\AtBeginDocument{\DeclareFontShape{T1}{lmss}{m}{sc}{<->ssub*lmr/m/sc}{}}
+
+\sisetup{
+  group-separator={},
+  table-number-alignment = center,
+  detect-weight = true,
+  detect-family = true
+}
+
+\graphicspath{{static/}}
+
+% ============================================================
+%  COMANDOS ALGORÍTMICOS EN ESPAÑOL
+% ============================================================
+% algpseudocode: solo existen comandos para keywords simples.
+% Los "end X" se forman automáticamente como \algorithmicend + \algorithmicX.
+% Por eso NO se redefinen \algorithmicendif, \algorithmicendfor, etc.
+\algrenewcommand\algorithmicend{\textbf{fin}}
+\algrenewcommand\algorithmicif{\textbf{Si}}
+\algrenewcommand\algorithmicthen{\textbf{entonces}}
+\algrenewcommand\algorithmicelse{\textbf{Sino}}
+\algrenewcommand\algorithmicfor{\textbf{Para}}
+\algrenewcommand\algorithmicforall{\textbf{Para todo}}
+\algrenewcommand\algorithmicwhile{\textbf{Mientras}}
+\algrenewcommand\algorithmicdo{\textbf{hacer}}
+\algrenewcommand\algorithmicreturn{\textbf{Devolver}}
+\algrenewcommand\algorithmicprocedure{\textbf{Procedimiento}}
+\algrenewcommand\algorithmicfunction{\textbf{Función}}
+
+% ============================================================
+%  FORMATO GENERAL
+% ============================================================
+\renewcommand{\contentsname}{}
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.1}
+\newcolumntype{P}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{gray!10},
+    frame=single,
+    breaklines=true,
+    captionpos=b
+}
+
+% TOC
+\renewcommand{\cftsecnumwidth}{2.5em}
+\renewcommand{\cftsubsecnumwidth}{3.5em}
+\renewcommand{\cftsubsubsecnumwidth}{4.5em}
+\hypersetup{hidelinks}
+
+% ============================================================
+%  BIBLIOGRAFÍA
+% ============================================================
+\addbibresource{referencias.bib}
+
+% ============================================================
+%  FUENTE Y MÁRGENES
+% ============================================================
+% Fuente sans-serif equivalente a Arial (disponible en Overleaf sin timeout)
+\renewcommand{\familydefault}{\sfdefault}
+
+\geometry{left=4cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
+\setstretch{1.15}
+
+% ============================================================
+%  FORMATO DE SECCIONES
+% ============================================================
+\titleformat{\section}
+  {\bfseries\fontsize{14}{16}\selectfont}
+  {CAPÍTULO \thesection:}{1em}{\MakeUppercase}
+
+\titleformat{\subsection}
+  {\raggedright\bfseries\fontsize{12}{14}\selectfont}
+  {\thesubsection}{1em}{}
+
+\titleformat{\subsubsection}
+  {\raggedright\slshape\fontsize{10}{12}\selectfont}
+  {\thesubsubsection}{1em}{}
+
+% ============================================================
+%  HYPERREF
+% ============================================================
+\hypersetup{
+    pdftitle={Diseño híbrido para el CVRP -- Optimización en Ingeniería USACH},
+    pdfauthor={Cristopher Angulo Ahumada},
+    hidelinks
+}
+
+% ============================================================
+%  ÍNDICES: prefijos y espaciado
+% ============================================================
+\renewcommand{\contentsname}{\fontsize{14}{16}\selectfont TABLA DE CONTENIDO}
+\renewcommand{\listfigurename}{\fontsize{14}{16}\selectfont ÍNDICE DE FIGURAS}
+\renewcommand{\listtablename}{\fontsize{14}{16}\selectfont ÍNDICE DE TABLAS}
+
+\renewcommand{\cftfigpresnum}{Figura }
+\renewcommand{\cftfigaftersnum}{:}
+\setlength{\cftfignumwidth}{7em}
+\setlength{\cftfigindent}{0pt}
+
+\renewcommand{\cfttabpresnum}{Tabla }
+\renewcommand{\cfttabaftersnum}{:}
+\setlength{\cfttabnumwidth}{6em}
+\setlength{\cfttabindent}{0pt}
+
+\renewcommand{\cftdotsep}{1}
+\renewcommand{\cftsecfont}{\normalfont}
+\renewcommand{\cftsecpagefont}{\normalfont}
+
+\renewcommand{\cfttoctitlefont}{\hfill\bfseries\fontsize{14}{16}\selectfont}
+\renewcommand{\cftaftertoctitle}{\hfill\mbox{}\vskip16pt}
+\renewcommand{\cftloftitlefont}{\hfill\bfseries\fontsize{14}{16}\selectfont\MakeUppercase}
+\renewcommand{\cftafterloftitle}{\hfill\mbox{}\vskip16pt}
+\renewcommand{\cftlottitlefont}{\hfill\bfseries\fontsize{14}{16}\selectfont\MakeUppercase}
+\renewcommand{\cftafterlottitle}{\hfill\mbox{}\vskip16pt}
+
+% ============================================================
+%  COMANDOS PROPIOS
+% ============================================================
+\newcommand{\resumen}[2]{%
+    \clearpage\thispagestyle{empty}
+    \begin{center}\bfseries\fontsize{14}{16}\selectfont RESUMEN\end{center}
+    \vspace{16pt}\noindent #1
+    \vspace{10pt}\noindent\textbf{Palabras clave:} #2
+}
+
+\newcommand{\customabstract}[2]{%
+    \clearpage\thispagestyle{empty}
+    \begin{center}\bfseries\fontsize{14}{16}\selectfont ABSTRACT\end{center}
+    \vspace{16pt}\noindent #1
+    \vspace{10pt}\noindent\textbf{Keywords:} #2
+}
+
+\pagenumbering{gobble}
+\sloppy
+
+% ============================================================
+\begin{document}
+% ============================================================
+
+\newgeometry{left=3cm, right=3cm, top=2.5cm, bottom=2.5cm}
+
+% ----------------------------------------------------------------
+%  PORTADA
+% ----------------------------------------------------------------
+\begin{titlepage}
+    \begin{center}
+        \begin{tabular}{@{}p{12.7cm}@{}m{2.2cm}@{}}
+            \begin{minipage}[t]{\linewidth}
+                \centering
+                {\fontsize{14pt}{16pt}\selectfont\bfseries
+                    UNIVERSIDAD DE SANTIAGO DE CHILE\par}
+                \vspace{1em}
+                {\fontsize{12pt}{14pt}\selectfont\bfseries
+                    FACULTAD DE INGENIERÍA\par}
+                \vspace{1em}
+                {\fontsize{12pt}{14pt}\selectfont\bfseries
+                    Departamento de Ingeniería Informática\par}
+            \end{minipage}
+            &
+            \includegraphics[width=2.2cm,height=2.87cm]{logo_usach.png}
+
+        \end{tabular}
+    \end{center}
+
+    \vspace{3cm}
+    \begin{center}
+        {\fontsize{14pt}{17pt}\selectfont\bfseries
+        Informe Nro. 1: Capacitated Vehicle Routing\\
+        Problem (CVRP) con método exacto\\[6pt]}
+    \end{center}
+
+    \vspace{1.5cm}
+    \begin{center}
+        {\fontsize{12pt}{14pt}\selectfont\bfseries
+        Cristopher René Alexander Angulo Ahumada\\[4pt]}
+    \end{center}
+
+    \vspace{3cm}
+    \begin{flushright}
+        {\fontsize{10pt}{12pt}\selectfont
+        \textbf{Profesora:} Dra. Mónica Villanueva I.\\[1em]
+        \textbf{Curso:} Optimización en Ingeniería\\[1em]
+        \textbf{Programa:} Magíster en Ingeniería Informática\par}
+    \end{flushright}
+
+    \vfill
+    \begin{center}
+        {\fontsize{10pt}{12pt}\selectfont
+        \textbf{Santiago -- Chile}\\[0.5em]
+        \textbf{2026}\par}
+    \end{center}
+\end{titlepage}
+
+% ----------------------------------------------------------------
+%  PRELIMINARES
+% ----------------------------------------------------------------
+\newpage
+\pagenumbering{roman}
+\setcounter{page}{1}
+\restoregeometry
+\setlength{\parindent}{1.5cm}
+\setstretch{1.5}
+
+\input{preliminares/resumen}
+\input{preliminares/abstract}
+
+% ----------------------------------------------------------------
+%  ÍNDICES
+% ----------------------------------------------------------------
+\clearpage
+\tableofcontents
+\clearpage
+%\listoftables
+%\clearpage
+\listoffigures
+\clearpage
+
+% ----------------------------------------------------------------
+%  CUERPO DEL DOCUMENTO
+% ----------------------------------------------------------------
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\newpage
+\section{INTRODUCCIÓN}
+\input{chapters/1/introduccion}
+
+\newpage
+\section{ESTADO DEL ARTE}
+\input{chapters/2/estado_del_arte}
+
+\newpage
+\section{MÉTODO}
+\input{chapters/3/metodo}
+
+
+\newpage
+\section{RESULTADOS Y ANÁLISIS}
+\label{sec:resultados}
+\input{chapters/4/resultados}
+
+\newpage
+\section{DISCUSIÓN}
+\input{chapters/5/discusion}
+
+\newpage
+\section{CONCLUSIONES}
+\input{chapters/6/conclusiones}
+
+% ----------------------------------------------------------------
+%  APÉNDICE
+% ----------------------------------------------------------------
+\newpage
+\appendix
+\titleformat{\section}
+  {\bfseries\fontsize{14}{16}\selectfont}
+  {APÉNDICE \thesection:}{1em}{\MakeUppercase}
+\input{apendice}
+
+% ----------------------------------------------------------------
+%  REFERENCIAS
+% ----------------------------------------------------------------
+\defbibheading{referencias}[\refname]{%
+  \section*{\MakeUppercase{Referencias Bibliográficas}}
+  \addcontentsline{toc}{section}{\MakeUppercase{Referencias Bibliográficas}}
+}
+\newpage
+\printbibliography[heading=referencias]
+
+\end{document}

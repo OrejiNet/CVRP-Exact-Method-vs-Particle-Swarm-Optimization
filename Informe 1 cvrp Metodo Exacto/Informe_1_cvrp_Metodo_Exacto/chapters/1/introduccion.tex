@@ -1,0 +1,115 @@
+Los problemas de ruteo de vehículos ocupan un lugar central en la investigación de
+operaciones, ya que articulan decisiones de asignación, secuenciamiento y transporte
+bajo restricciones operacionales. Entre sus variantes, el \textit{Capacitated Vehicle
+Routing Problem} (CVRP) destaca como un modelo base para estudiar la distribución
+física de mercancías desde un depósito central hacia clientes con demanda conocida,
+cuando la capacidad de carga de cada vehículo es limitada
+\parencite{toth2002vehicle}.
+
+\subsection{Contexto y motivación}
+
+El interés práctico por el CVRP proviene de la necesidad de diseñar redes de
+distribución con bajo costo total y alto nivel de servicio. En operaciones logísticas
+reales, una planificación de rutas deficiente incrementa kilómetros recorridos,
+horas-hombre, consumo de combustible y uso de flota, deteriorando la competitividad del
+sistema. Desde una perspectiva de modelación, el CVRP representa la interacción entre
+decisiones de partición de clientes en rutas y decisiones de ordenamiento de visitas
+dentro de cada recorrido, lo que lo convierte en un problema estructuralmente complejo.
+
+Dos contextos de aplicación ilustran esta relevancia. En distribución de retail y
+comercio mayorista, un centro de distribución debe abastecer múltiples locales o puntos
+de venta con una flota propia o subcontratada; aquí, el cumplimiento de capacidad y la
+consolidación eficiente de carga son determinantes para reducir costos de transporte y
+frecuencia de despachos. En recolección de residuos domiciliarios, los camiones deben
+visitar sectores urbanos completos, respetando la capacidad de compactación antes de
+retornar al depósito o estación de descarga; en este caso, la factibilidad operacional
+de cada ruta depende directamente de la demanda acumulada por sector. En ambos
+escenarios, el CVRP entrega una representación matemática suficientemente rica para
+apoyar decisiones tácticas y operacionales.
+
+\subsection{Fundamentos teóricos}
+
+El CVRP pertenece a la familia de problemas $\mathcal{NP}$-hard y generaliza, entre
+otros, al problema del viajante de comercio cuando la capacidad es suficientemente
+grande o cuando se utiliza un solo vehículo \parencite{lenstra1981complexity}. Esta
+dificultad combinatoria explica el interés por los métodos exactos basados en
+programación entera, relajaciones lineales y procedimientos de ramificación, los cuales
+permiten certificar optimalidad para instancias de tamaño pequeño y mediano, además de
+proporcionar cotas inferiores útiles para evaluación algorítmica.
+
+Para la lectura de este informe conviene fijar algunas nociones que articulan
+dichos métodos. Un \textit{grafo no dirigido} es aquel cuyas aristas carecen de
+orientación: la arista $\{i,j\}$ puede recorrerse en ambos sentidos y, en
+consecuencia, $c_{ij}=c_{ji}$. Cuando la matriz de costos satisface esta
+condición, el problema de ruteo se denomina \textit{simétrico}, lo que permite
+formularlo sobre aristas en lugar de arcos, reduciendo a la mitad el número de
+variables. Las \textit{restricciones de grado} regulan el número de aristas
+activas incidentes a cada nodo: un cliente dentro de una ruta posee grado dos
+(una arista por la que el vehículo llega y otra por la que sale), mientras que
+el depósito, del cual parten y al cual retornan $m$ vehículos, posee grado $2m$.
+
+Una \textit{relajación} de un problema de optimización se obtiene al eliminar o
+debilitar parte de sus restricciones; como el conjunto factible resultante contiene al del problema original
+(toda solución factible del problema original sigue siéndolo en la
+relajación), el valor óptimo de la relajación constituye una \textit{cota
+inferior} del valor óptimo verdadero, es decir, un piso
+garantizado bajo el cual éste no puede encontrarse. En particular, la
+\textit{relajación lineal} de un programa entero se obtiene al sustituir la
+condición de integralidad por su versión continua (por ejemplo,
+$x_{ij}\in\{0,1\}$ por $0 \le x_{ij} \le 1$). De manera complementaria, toda solución factible del problema proporciona una
+\textit{cota superior}, y la brecha relativa entre ambas cotas (\textit{gap})
+acota la distancia máxima entre la mejor solución disponible y el óptimo: un
+gap de $g\%$ certifica que dicha solución dista a lo más un $g\%$ del valor
+óptimo, aun cuando éste no se conozca. Las cotas cumplen así un rol doble:
+cuando la brecha se anula, certifican optimalidad, y durante la búsqueda
+habilitan la poda en \textit{Branch and Bound}, pues toda rama cuya cota
+inferior excede el costo de la mejor solución entera conocida puede descartarse
+sin explorarla.
+
+En este informe se adopta el enfoque exacto clásico para el CVRP simétrico
+sobre un grafo no dirigido, basado en una estrategia de \textit{Branch and
+Bound} en la que las restricciones exponenciales de subtour y capacidad no se
+imponen desde el inicio \parencite{laporte1983branch}. En su lugar, el problema
+se resuelve primero sobre una relajación con restricciones de grado, y las
+desigualdades pertinentes se agregan únicamente cuando una solución entera
+candidata presenta subtours ilegales o incumplimientos de capacidad. Este
+esquema combina tres ideas fundamentales de la optimización exacta: relajación
+para obtener cotas inferiores, separación de restricciones para fortalecer la
+formulación, y ramificación para recuperar integralidad.
+
+\subsection{Objetivos}
+
+El objetivo general de este informe es resolver el CVRP mediante métodos exactos
+clásicos, implementando computacionalmente la formulación de
+\textcite{laporte1983branch} para el caso simétrico con generación iterativa de
+desigualdades de capacidad, y evaluando el procedimiento sobre instancias
+estándar de la literatura.
+
+Los objetivos específicos son los siguientes:
+\begin{enumerate}
+    \item Definir el CVRP en lenguaje natural e identificar contextos logísticos
+          representativos.
+    \item Presentar una formulación matemática compacta del problema e interpretar sus
+          restricciones principales.
+    \item Revisar el estado del arte de los métodos exactos aplicables al CVRP,
+          posicionando el enfoque seleccionado dentro del panorama de algoritmos
+          \textit{Branch and X}.
+    \item Implementar el procedimiento de resolución exacta, basado en la
+          formulación de dos índices con generación iterativa de desigualdades de
+          capacidad redondeada (RCI), delegando la resolución de cada modelo entero
+          al solver COIN-OR CBC.
+    \item Evaluar el método sobre instancias de los Sets E y A de CVRPLIB, contrastando las
+          soluciones obtenidas con los valores óptimos de referencia y analizando el
+          esfuerzo computacional en función del tamaño de la instancia.
+\end{enumerate}
+
+\subsection{Organización del informe}
+
+El Capítulo~2 resume el estado del arte de los métodos exactos para el CVRP,
+posicionando el enfoque adoptado dentro de la familia \textit{Branch and X}. El
+Capítulo~3 presenta la definición del problema, la formulación matemática completa y
+el procedimiento de resolución basado en \textit{Branch and Bound} con generación
+iterativa de desigualdades de capacidad. El Capítulo~4 reporta los resultados de la experimentación computacional sobre
+instancias de los Sets E y A de CVRPLIB y su análisis. El Capítulo~5 discute
+los hallazgos en relación con los objetivos del trabajo, sus limitaciones y las
+mejoras posibles. Finalmente, el Capítulo~6 presenta las conclusiones.

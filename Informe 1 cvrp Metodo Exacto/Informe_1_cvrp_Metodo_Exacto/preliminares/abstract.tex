@@ -1,0 +1,28 @@
+\clearpage
+\thispagestyle{empty}
+\begin{center}
+    \bfseries\fontsize{14}{16}\selectfont ABSTRACT
+\end{center}
+\vspace{16pt}
+
+\noindent
+The \textit{Capacitated Vehicle Routing Problem} (CVRP) is a classical combinatorial
+optimization problem in which a minimum-cost set of routes must be designed to serve
+customers with known demands by means of a homogeneous fleet of capacity-constrained
+vehicles. This report addresses the CVRP exclusively from the standpoint of
+exact mathematical programming methods. The state of the art of \textit{Branch and X}
+algorithms for the problem is reviewed, covering \textit{Branch and Bound},
+\textit{Branch and Cut}, \textit{Branch and Price} and \textit{Branch, Cut and Price},
+and the adoption of the classical scheme by Laporte and Nobert (1983) is justified as
+the methodological basis of the work. The document presents the formal definition of
+the CVRP, its mathematical formulation as an integer linear program over an undirected
+graph, and the resolution procedure based on the iterative generation of
+capacity inequalities over an initial relaxation with degree constraints. The computational implementation, developed in Python using PuLP and the
+COIN-OR CBC solver, was evaluated on five standard CVRPLIB instances (Sets E
+and A). The method certified optimality in four of them (0\% gap) and, on the
+fifth, reached a feasible solution within 0.91\% of the optimum under the time
+budget, empirically exposing the scalability limit of the classical scheme.
+
+\vspace{10pt}
+\noindent\textbf{Keywords:} CVRP; combinatorial optimization; integer linear
+programming; exact methods; \textit{Branch and Bound}; CVRPLIB.

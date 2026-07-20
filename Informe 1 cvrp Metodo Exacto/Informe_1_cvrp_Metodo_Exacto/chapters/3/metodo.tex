@@ -1,0 +1,271 @@
+\subsection{Adquisición de datos e instancias}
+
+La evaluación del modelo se apoya en instancias estándar de la biblioteca
+\textit{Capacitated Vehicle Routing Problem Library} (CVRPLIB), repositorio ampliamente
+utilizado para contrastar algoritmos exactos sobre un conjunto común de casos de prueba
+y soluciones de referencia \parencite{cvrplib}. El uso de esta biblioteca permite
+trabajar sobre instancias estructuradas y comparables, lo que resulta especialmente
+importante en un problema $\mathcal{NP}$-hard como el CVRP, donde la dificultad
+computacional crece rápidamente con el número de nodos y con la rigidez de las
+restricciones de capacidad.
+
+El flujo de adquisición de datos considera dos etapas. En primer lugar, las
+instancias del Set A y Set E fueron obtenidas desde el repositorio oficial de CVRPLIB
+y almacenadas localmente junto con sus soluciones de referencia (archivos
+\texttt{.vrp} y \texttt{.sol}), lo que asegura trazabilidad y reproducibilidad
+en la construcción del conjunto experimental. En segundo lugar, cada archivo
+\texttt{.vrp} es procesado para extraer la información relevante del problema:
+número de nodos, capacidad vehicular, coordenadas cartesianas del depósito y
+de los clientes, y demanda asociada a cada nodo de atención. El número de
+vehículos $m$ se obtiene directamente del identificador de la instancia
+(componente $k$ del nombre), y el valor óptimo de referencia se lee desde el
+archivo \texttt{.sol} correspondiente. A partir de estos datos se construye la
+estructura del grafo completo no dirigido y se calcula la matriz de costos
+$c_{ij}$ empleada por el modelo.
+
+La evaluación considera cinco instancias de los Sets E y A de CVRPLIB en orden
+creciente de tamaño: \texttt{E-n13-k4} ($n=13$, $m=4$), \texttt{E-n22-k4}
+($n=22$, $m=4$), \texttt{E-n23-k3} ($n=23$, $m=3$), \texttt{A-n32-k5} ($n=32$,
+$m=5$) y \texttt{A-n33-k5} ($n=33$, $m=5$). Las tres primeras, del Set E 
+\parencite{christofides1981exact}, son de tamaño pequeño y permiten validar la
+correctitud del procedimiento; \texttt{A-n32-k5}, caso clásico de referencia
+para métodos exactos del Set A \parencite{augerat1995}, constituye la
+instancia objetivo del estudio, y \texttt{A-n33-k5} explora el comportamiento
+del método un escalón por sobre ella. Esta progresión de tamaños permite
+observar el crecimiento del esfuerzo computacional y delimitar empíricamente el
+rango de instancias resolubles a optimalidad dentro de un presupuesto de tiempo
+dado.
+
+Siguiendo la convención \texttt{EUC\_2D} de TSPLIB utilizada por CVRPLIB, el
+costo de cada arista se define como la distancia euclidiana redondeada al
+entero más cercano, $c_{ij} = \left[ \sqrt{(x_i-x_j)^2 + (y_i-y_j)^2} \right]$,
+lo que garantiza la comparabilidad directa con los valores óptimos reportados
+en la biblioteca.
+
+Algunas instancias del Set E declaran sus distancias de forma explícita
+(\texttt{EDGE\_WEIGHT\_TYPE: EXPLICIT}, con la matriz triangular inferior en el
+propio archivo); en estos casos, la matriz de costos se lee directamente del
+archivo en lugar de calcularse desde coordenadas. El procedimiento de carga
+soporta ambos formatos de manera transparente para el modelo; cuando la
+instancia carece de coordenadas, se omite únicamente la visualización de rutas,
+sin efecto sobre la resolución.
+
+\subsection{Formulación del modelo matemático}
+
+Sea $G=(V,E)$ un grafo completo no dirigido, donde $V=\{1,2,\dots,n\}$ es el conjunto
+de nodos, con el nodo $1$ representando el depósito, y $E$ es el conjunto de aristas no
+dirigidas. Cada cliente $i\in V\setminus\{1\}$ posee una demanda $d_i \ge 0$, y cada
+arista $\{i,j\}\in E$ tiene un costo de recorrido $c_{ij}=c_{ji}$. Se considera una
+flota homogénea de $m$ vehículos, todos con capacidad $D$.
+
+\subsubsection{Variables de decisión}
+
+Siguiendo la formulación simétrica propuesta por \textcite{laporte1983branch}, se
+define la variable de decisión $x_{ij}$ como el número de veces que una solución
+utiliza la arista no dirigida $\{i,j\}$, para todo $i<j$.
+
+\subsubsection{Función objetivo}
+
+La función objetivo minimiza la distancia total recorrida por la flota:
+\begin{equation}
+    \minimo \; z = \sum_{\{i,j\} \in E} c_{ij}\, x_{ij}.
+    \label{eq:metodo_objetivo}
+\end{equation}
+
+\subsubsection{Restricciones}
+
+La estructura de las rutas queda determinada por restricciones de grado. Para el
+depósito, la suma de incidencias debe ser igual al doble del número de vehículos
+utilizados:
+\begin{equation}
+    \sum_{j=2}^{n} x_{1j} = 2m.
+    \label{eq:metodo_deposito}
+\end{equation}
+
+Para cada cliente $k=2,\dots,n$, la solución debe asegurar grado dos, lo que equivale
+a imponer que cada nodo de demanda sea visitado exactamente una vez dentro de alguna
+ruta:
+\begin{equation}
+    \sum_{i<k} x_{ik} + \sum_{j>k} x_{kj} = 2,
+    \quad k=2,\dots,n.
+    \label{eq:metodo_clientes}
+\end{equation}
+
+Las restricciones \eqref{eq:metodo_deposito} y \eqref{eq:metodo_clientes} son
+necesarias pero no suficientes para garantizar factibilidad global, ya que admiten
+soluciones que contienen ciclos desconectados del depósito. Para descartar estas
+configuraciones e incorporar simultáneamente la capacidad vehicular, se emplean
+restricciones de eliminación de subtours y capacidad sobre todo subconjunto de
+clientes $S \subseteq V \setminus \{1\}$ con $|S| \ge 2$. La forma original propuesta
+por \textcite{laporte1983branch} expresa estas restricciones como cortes de capacidad:
+\begin{equation}
+    \sum_{i \in S} \sum_{j \notin S} x_{ij} \;\ge\; 2 \left\lceil
+        \frac{\sum_{i \in S} d_i}{D}
+    \right\rceil,
+    \quad S \subseteq V \setminus \{1\},\; |S| \ge 2.
+    \label{eq:metodo_corte}
+\end{equation}
+
+En presencia de las restricciones de grado, la desigualdad
+\eqref{eq:metodo_corte} es equivalente a la \textit{rounded capacity inequality} (RCI),
+empleada habitualmente en implementaciones modernas
+\parencite{lysgaard2004branch}:
+\begin{equation}
+    \sum_{i,j \in S\,;\, i<j} x_{ij}
+    \;\le\; |S| - \left\lceil
+        \frac{\sum_{i \in S} d_i}{D}
+    \right\rceil,
+    \quad S \subseteq V \setminus \{1\},\; |S| \ge 2.
+    \label{eq:metodo_rci}
+\end{equation}
+
+La desigualdad \eqref{eq:metodo_rci} expresa que, si la demanda agregada del
+subconjunto $S$ requiere al menos $\left\lceil \sum_{i \in S} d_i / D \right\rceil$
+vehículos, entonces no es posible que todas las aristas de $S$ queden contenidas en un
+único subtour aislado. En consecuencia, esta familia de restricciones cumple una
+doble función: descartar subtours ilegales y asegurar que la partición de clientes en
+rutas respete la capacidad de carga disponible.
+
+\subsubsection{Dominio de las variables}
+
+El dominio de las variables refleja la estructura simétrica del modelo
+\parencite{laporte1983branch}:
+\begin{equation}
+    x_{ij} \in \{0, 1\}, \quad \forall\, i, j \in V \setminus \{1\},\; i < j,
+    \label{eq:metodo_dominio_clientes}
+\end{equation}
+\begin{equation}
+    x_{1j} \in \{0, 1, 2\}, \quad \forall\, j \in V \setminus \{1\}.
+    \label{eq:metodo_dominio_deposito}
+\end{equation}
+
+Las aristas entre clientes son binarias porque cada par de nodos puede recorrerse a lo
+más una vez en una solución factible. En cambio, las aristas incidentes al depósito
+admiten el valor $2$, lo que corresponde al caso particular en que una ruta atiende a
+un único cliente y, por lo tanto, recorre la arista depósito-cliente dos veces (ida y
+vuelta).
+
+Desde el punto de vista computacional, el elemento más crítico del modelo no es
+únicamente la integralidad, sino la naturaleza exponencial de la familia
+\eqref{eq:metodo_rci}, lo que hace inviable incorporarla exhaustivamente desde el
+inicio para instancias de tamaño no trivial.
+
+\subsection{Implementación computacional}
+
+La implementación se desarrolló en \textbf{Python}, utilizando la biblioteca
+\textbf{PuLP} como interfaz de modelamiento para programación lineal entera
+mixta \parencite{pulp2011}. Las pruebas iniciales y la validación del
+procedimiento se realizaron en \textbf{Google Colab} (Python 3.10), mientras
+que la experimentación definitiva y las ejecuciones finales reportadas en este
+informe se llevaron a cabo en un entorno local (Python 3.12). Esta elección
+permite construir el modelo de manera declarativa, mantener una representación
+transparente de las variables y restricciones, e integrar con facilidad un
+esquema iterativo de fortalecimiento del modelo; el código completo se encuentra disponible en un
+repositorio público\footnote{\url{https://github.com/OrejiNet/CVRP_BNB}}.
+
+La experimentación definitiva se ejecutó en un equipo de escritorio con
+procesador Intel Core i9-11900K (3{,}50~GHz, 8 núcleos), 32~GB de memoria RAM
+y sistema operativo Windows 11.
+
+
+La resolución del problema entero se delega al solver \textbf{COIN-OR CBC},
+invocado desde PuLP \parencite{pulp2011}. CBC implementa internamente el algoritmo de
+\textit{Branch and Bound} sobre la formulación entera, complementado con planos de
+corte genéricos. Sobre esta capa, el procedimiento implementado replica la lógica
+exacta del enfoque clásico adoptado \parencite{laporte1983branch}: se parte con una relajación del
+modelo que considera únicamente la función objetivo \eqref{eq:metodo_objetivo} y las
+restricciones de grado \eqref{eq:metodo_deposito}--\eqref{eq:metodo_clientes}. Tras
+resolver el problema, se inspecciona la solución obtenida para determinar si la
+estructura propuesta corresponde efectivamente a un conjunto de rutas factibles.
+
+Para esta etapa de verificación se utiliza \textbf{NetworkX}
+\parencite{hagberg2008exploring}, biblioteca empleada para representar la solución
+como un grafo y detectar componentes conexas inducidas por las aristas activas. Esta
+representación permite identificar de forma directa subtours desconectados del
+depósito o componentes cuya demanda total excede la capacidad vehicular disponible. En
+cada iteración, para cada subconjunto $S$ que incumpla la restricción de capacidad o
+que induzca un subtour ilegal, se agrega al modelo una nueva desigualdad de la
+forma \eqref{eq:metodo_rci}, y el problema se resuelve nuevamente. El ciclo continúa
+hasta que ningún subconjunto requiera nuevas restricciones, momento en el cual la
+solución resultante satisface simultáneamente las condiciones de conectividad y
+capacidad.
+
+Cada resolución del modelo entero se ejecuta con un límite de 60 segundos; si
+el solver agota este presupuesto sin certificar la optimalidad del subproblema,
+retorna la mejor solución entera encontrada, lo que se refleja en el análisis
+de resultados del Capítulo~4.
+
+
+\begin{figure}[H]
+    \centering
+    \shorthandoff{<>}
+    \resizebox{0.84\textwidth}{!}{%
+    \begin{tikzpicture}[node distance=0.75cm]
+        \tikzstyle{proceso}=[rectangle, rounded corners, draw=black, thick, fill=gray!15, text width=4.8cm, minimum height=0.9cm, align=center]
+        \tikzstyle{datos}=[trapezium, trapezium left angle=70, trapezium right angle=110, draw=black, thick, fill=blue!15, text width=4.8cm, minimum height=0.9cm, align=center]
+        \tikzstyle{decision}=[diamond, draw=black, thick, fill=yellow!25, text width=3.2cm, aspect=2, align=center, inner sep=1pt]
+        \tikzstyle{termino}=[ellipse, draw=black, thick, fill=gray!20, minimum width=2.4cm, minimum height=0.8cm, align=center]
+
+        \node (inicio) [termino] {Inicio};
+        \node (datos) [datos, below=of inicio] {Carga de la instancia \texttt{.vrp} y de su solución de referencia \texttt{.sol} desde repositorio local (Set A,Set B, CVRPLIB)};
+        \node (parsing) [proceso, below=of datos] {Pre-procesamiento: \textit{parsing} del archivo \texttt{.vrp} y extracción de coordenadas, demandas, capacidad $D$ y número de vehículos $m$};
+        \node (distancias) [proceso, below=of parsing] {Cálculo de la matriz de distancias euclidianas redondeadas (\texttt{EUC\_2D}) entre todos los pares de nodos};
+        \node (modelo) [proceso, below=of distancias] {Configuración del modelo en PuLP: función objetivo y restricciones de grado iniciales};
+        \node (resolver) [proceso, below=0.9cm of modelo] {Resolución del modelo entero con el solver COIN-OR CBC};
+        \node (decision) [decision, below=1.0cm of resolver] {Subtours ilegales o exceso de capacidad detectados con NetworkX};
+        \node (cortes) [proceso, right=3.5cm of decision] {Generación e incorporación de cortes dinámicos RCI (Ec.~\ref{eq:metodo_rci})};
+        \node (nota) [proceso, below=0.8cm of cortes, text width=4.6cm, fill=blue!8] {\textbf{Ec.~(\ref{eq:metodo_rci})}\\[2pt] $\sum_{i,j\in S;\, i<j} x_{ij} \le |S| - \left\lceil \frac{\sum_{i\in S} d_i}{D} \right\rceil$};
+        \node (salida) [proceso, below=1.1cm of decision] {Extracción de rutas finales y verificación de factibilidad};
+        \node (visualizacion) [proceso, below=of salida] {Visualización de trayectorias con Matplotlib};
+        \node (fin) [termino, below=of visualizacion] {Fin del proceso};
+
+        \draw[->, thick] (inicio) -- (datos);
+        \draw[->, thick] (datos) -- (parsing);
+        \draw[->, thick] (parsing) -- (distancias);
+        \draw[->, thick] (distancias) -- (modelo);
+        \draw[->, thick] (modelo) -- (resolver);
+        \draw[->, thick] (resolver) -- (decision);
+        \draw[->, thick] (decision) -- node[above] {Sí} (cortes);
+        \draw[->, thick] (decision) -- node[right] {No} (salida);
+        \draw[->, thick] (cortes.north) |- node[pos=0.25, above] {reoptimizar} (resolver.east);
+        \draw[->, thick] (cortes) -- (nota);
+        \draw[->, thick] (salida) -- (visualizacion);
+        \draw[->, thick] (visualizacion) -- (fin);
+    \end{tikzpicture}%
+    }
+    \shorthandon{<>}
+    \caption{Flujo de trabajo computacional para la resolución exacta del CVRP mediante generación iterativa de desigualdades de capacidad redondeada (RCI). Fuente: elaboración propia.}
+    \label{fig:flujo_cvrp}
+\end{figure}
+
+
+\subsection{Procedimiento iterativo de generación de cortes}
+
+El esquema computacional adoptado puede resumirse en los siguientes pasos:
+\begin{enumerate}
+    \item Cargar y parsear la instancia \texttt{.vrp} desde el repositorio local, junto con el valor óptimo de referencia del archivo \texttt{.sol}.
+    \item Construir el grafo completo y calcular la matriz de distancias $c_{ij}$ a
+          partir de las coordenadas euclidianas de los nodos.
+    \item Formular un modelo inicial con la función objetivo
+          \eqref{eq:metodo_objetivo} y las restricciones de grado
+          \eqref{eq:metodo_deposito}--\eqref{eq:metodo_clientes}.
+    \item Resolver el modelo entero con CBC y extraer las aristas activas de la
+          solución.
+    \item Analizar la solución mediante NetworkX para identificar componentes conexas
+          distintas del depósito o rutas cuya carga acumulada exceda la capacidad $D$.
+    \item Agregar dinámicamente las restricciones RCI correspondientes a los
+          subconjuntos identificados y reoptimizar el modelo.
+    \item Repetir el procedimiento hasta obtener una solución entera sin subtours
+          ilegales y con factibilidad de carga en cada ruta.
+\end{enumerate}
+
+Este enfoque evita incorporar de forma anticipada un número exponencial de
+restricciones, reduciendo el tamaño inicial del modelo y permitiendo que el
+fortalecimiento ocurra únicamente cuando la estructura de la solución lo exige. Desde
+el punto de vista de optimización exacta, esta estrategia puede interpretarse como un
+esquema de generación iterativa de cortes sobre una formulación entera, estrechamente
+vinculado al espíritu del método de \textit{Branch and Bound} propuesto por
+\textcite{laporte1983branch}. La principal dificultad esperada radica en que, a medida
+que crece el tamaño de la instancia, aumenta el número potencial de subconjuntos
+candidatos a incumplir las restricciones de capacidad, lo que refleja directamente la
+complejidad combinatoria inherente del CVRP.

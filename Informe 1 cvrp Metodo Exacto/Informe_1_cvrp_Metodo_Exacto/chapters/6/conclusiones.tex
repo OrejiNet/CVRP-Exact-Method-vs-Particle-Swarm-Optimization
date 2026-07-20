@@ -1,0 +1,28 @@
+Este trabajo abordó el Capacitated Vehicle Routing Problem, problema
+$\mathcal{NP}$-hard de optimización combinatoria que consiste en diseñar
+rutas de costo mínimo para una flota homogénea de vehículos con capacidad
+limitada, exclusivamente mediante métodos exactos de programación matemática.
+
+Se implementó el esquema clásico de Laporte y Nobert (1983) sobre la
+formulación simétrica de dos índices, con generación iterativa de
+desigualdades de capacidad redondeada y resolución de cada modelo entero
+mediante \textit{Branch and Bound} a través del solver COIN-OR CBC. El método
+certificó el óptimo global en cuatro de las cinco instancias evaluadas de
+CVRPLIB (gap 0\,\%: \texttt{E-n13-k4}, \texttt{E-n22-k4}, \texttt{E-n23-k3} y
+\texttt{A-n32-k5}), y en la quinta (\texttt{A-n33-k5}) obtuvo una solución
+factible a 0{,}91\,\% del óptimo sin alcanzar el certificado dentro del
+presupuesto de tiempo.
+
+Los hallazgos confirman la doble naturaleza de los métodos exactos clásicos:
+por una parte, proporcionan garantías de optimalidad verificables ---la
+coincidencia exacta con las soluciones de referencia--- que ningún método
+aproximado ofrece; por otra, su esfuerzo computacional crece de forma abrupta
+con el tamaño de la instancia, al punto de que un solo nodo adicional desplazó
+el problema fuera del rango resoluble. La implicación general es que el
+esquema clásico resulta apropiado como herramienta de certificación sobre
+instancias pequeñas y medianas, y como base conceptual ---relajación, cotas,
+separación y ramificación--- de los métodos modernos que extienden su alcance,
+mientras que las instancias mayores exigen los enfoques \textit{Branch and
+Cut} y \textit{Branch, Cut and Price} revisados en el estado del arte, o bien
+métodos aproximados cuya exploración corresponde a la siguiente etapa de este
+trabajo.

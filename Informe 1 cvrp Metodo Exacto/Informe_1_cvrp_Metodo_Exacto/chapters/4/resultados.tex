@@ -1,0 +1,103 @@
+\subsection{Condiciones experimentales}
+
+Los experimentos se ejecutaron en el equipo descrito en la Sección~3.3, con un
+límite de 60 segundos por resolución del modelo entero y una pasada por
+instancia, dado el carácter determinista del método. Para cada instancia se
+registró el valor de la solución obtenida ($z^{*}$), el número de iteraciones
+del ciclo de generación de cortes, el número total de desigualdades RCI
+incorporadas, el tiempo total de resolución y la brecha relativa (gap) respecto
+del valor óptimo de referencia leído desde el archivo \texttt{.sol} de CVRPLIB.
+
+\subsection{Resultados}
+
+La Tabla~\ref{tab:resultados} resume los resultados sobre las cinco instancias
+evaluadas.
+
+\begin{table}[H]
+\centering
+\caption{Resultados computacionales sobre instancias de CVRPLIB (Sets E y A).
+Límite de 60~s por resolución del modelo entero.}
+\label{tab:resultados}
+\begin{tabular}{lrrrrrrrl}
+\hline
+Instancia & $n$ & $m$ & Óptimo & $z^{*}$ & Gap (\%) & Iter. & Cortes & Tiempo (s) \\
+\hline
+E-n13-k4 & 13 & 4 & 247 & 247 & 0{,}00 & 15  & 47     & 0{,}9 \\
+E-n22-k4 & 22 & 4 & 375 & 375 & 0{,}00 & 13  & 84     & 0{,}8 \\
+E-n23-k3 & 23 & 3 & 569 & 569 & 0{,}00 & 16  & 135    & 1{,}2 \\
+A-n32-k5 & 32 & 5 & 784 & 784 & 0{,}00 & 99  & 788    & 576{,}1 \\
+A-n33-k5 & 33 & 5 & 661 & 667 & 0{,}91 & 384 & 2\,846 & 17\,096{,}4 \\
+\hline
+\end{tabular}
+\end{table}
+
+En cuatro de las cinco instancias el método alcanzó el valor óptimo de
+referencia con gap nulo. En estos casos, cada resolución del modelo entero
+concluyó dentro del límite de tiempo con certificado de optimalidad del solver,
+por lo que el valor final corresponde al óptimo global certificado del CVRP.
+La instancia \texttt{A-n33-k5} constituye la excepción y se analiza por
+separado en la Sección~\ref{sec:limite}.
+
+La Figura~\ref{fig:rutas32} muestra la solución óptima obtenida para
+\texttt{A-n32-k5}: cinco rutas que parten y retornan al depósito, cada una con
+carga acumulada dentro de la capacidad $D=100$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.78\textwidth]{figuras/A-n32-k5_rutas_20260611_213833.png}
+    \caption{Rutas óptimas obtenidas para la instancia \texttt{A-n32-k5}
+    ($z^{*}=784$). El cuadrado indica el depósito. Fuente: elaboración propia.}
+    \label{fig:rutas32}
+\end{figure}
+
+\subsection{Análisis de la convergencia}
+
+El comportamiento del método sobre \texttt{A-n32-k5} ilustra la mecánica del
+esquema de generación iterativa de cortes. El modelo inicial, que contiene
+únicamente las restricciones de grado, entrega un valor de 585: esta es la
+cota inferior provista por la relajación, un 25{,}4\,\% por debajo del óptimo.
+A medida que el procedimiento detecta subtours ilegales y excesos de capacidad
+e incorpora las desigualdades RCI correspondientes (Ec.~5), la cota asciende
+de forma monótona: 743 tras 10 iteraciones, 780 tras 50, hasta alcanzar 784 en
+la iteración 91 y certificar, en la iteración 99, que ningún subconjunto
+adicional incumple las restricciones. En total se incorporaron 788
+desigualdades de una familia cuyo tamaño completo es exponencial, lo que
+confirma la pertinencia de generarlas únicamente cuando la estructura de la
+solución lo exige.
+
+El análisis del tiempo por resolución revela dónde reside el costo del
+esquema: las primeras iteraciones se resuelven en centésimas de segundo,
+mientras que las últimas requieren más de 16 segundos cada una, pues el modelo
+acumula cientos de cortes y debe resolverse desde cero en cada iteración. El
+esfuerzo computacional, por tanto, no está dominado por la separación de
+cortes (de costo polinomial mediante componentes conexas) sino por las
+re-resoluciones sucesivas del modelo entero.
+
+Las instancias del Set E exhiben el mismo patrón en miniatura: convergen en
+13--16 iteraciones y alrededor de un segundo, con la cota ascendiendo
+monótonamente hasta el óptimo. La comparación entre ambos grupos anticipa el
+crecimiento abrupto del esfuerzo con el tamaño de la instancia.
+
+\subsection{El límite del esquema: la instancia A-n33-k5}
+\label{sec:limite}
+
+Con un nodo más que \texttt{A-n32-k5}, la instancia \texttt{A-n33-k5} no pudo
+resolverse a optimalidad dentro del presupuesto experimental. La traza de
+ejecución muestra que, a partir de la iteración 148 aproximadamente, cada
+resolución del modelo entero agotó el límite de 60 segundos sin que el solver
+certificara la optimalidad del subproblema, retornando en su lugar la mejor
+solución entera encontrada. La evidencia de esta pérdida de certificación es
+visible en la propia traza: hasta ese punto el valor de la cota asciende de
+forma monótona (496 a 647), comportamiento propio de óptimos de modelos
+progresivamente más restringidos, mientras que después oscila de manera
+errática (entre 650 y 670), lo que corresponde a soluciones factibles no
+necesariamente óptimas de cada subproblema.
+
+El procedimiento concluyó tras 384 iteraciones y 4{,}7 horas con una solución
+factible de costo 667, un 0{,}91\,\% sobre el óptimo de referencia (661). Cabe
+subrayar la distinción: se trata de una solución factible de buena calidad,
+pero sin certificado de optimalidad, pues la última resolución no concluyó
+dentro del límite de tiempo. Este resultado delimita empíricamente, para la
+configuración utilizada, la frontera de instancias resolubles a optimalidad
+por el esquema clásico: el salto de $n=32$ a $n=33$ multiplicó el tiempo de
+resolución por un factor cercano a 30 sin alcanzar el certificado.

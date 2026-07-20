@@ -1,0 +1,114 @@
+El CVRP ha sido objeto de estudio sistemático en la literatura de investigación
+operacional desde su introducción a fines de los años cincuenta \parencite{dantzig1959truck}. Su carácter
+$\mathcal{NP}$-hard \parencite{lenstra1981complexity} explica el interés sostenido por
+desarrollar métodos exactos capaces de certificar optimalidad sobre instancias de tamaño
+no trivial, así como métodos aproximados que escalen a instancias industriales. En este
+informe el alcance se restringe deliberadamente a los métodos exactos de programación
+matemática, alineados con los contenidos de optimización combinatorial y programación
+lineal entera del curso \parencite{tan2021vehicle}.
+
+\subsection{Métodos exactos para el CVRP}
+
+La literatura clasifica los métodos exactos para el CVRP bajo el paraguas
+\textit{Branch and X}, donde la base común es el procedimiento de \textit{Branch and
+Bound} aplicado sobre formulaciones de programación lineal entera mixta
+\parencite{tan2021vehicle}. Las variantes principales se diferencian por la forma en que
+fortalecen la relajación lineal, generan variables o exploran el espacio de soluciones.
+
+\subsubsection{Branch and Bound clásico}
+
+El algoritmo de \textit{Branch and Bound} resuelve la relajación lineal del problema
+entero, ramifica sobre variables fraccionarias creando subproblemas restringidos, y poda
+ramas cuya cota inferior excede la mejor solución entera conocida
+\parencite{land1960automatic}. Este esquema constituye el núcleo de los métodos exactos
+clásicos cubiertos en el curso de Optimización Combinatorial. En el contexto del CVRP,
+la primera implementación efectiva formuló el problema simétrico sobre un grafo no
+dirigido y resolvió una relajación inicial con restricciones de grado, agregando
+dinámicamente las restricciones de eliminación de subtours y capacidad sólo cuando una
+solución entera candidata las incumplía \parencite{laporte1983branch}. Esta estrategia
+anticipa, en su lógica esencial, el principio de separación de desigualdades válidas que
+caracteriza a los métodos posteriores.
+
+\subsubsection{Branch and Cut}
+
+\textit{Branch and Cut} extiende el esquema anterior incorporando la generación
+sistemática de planos de corte que fortalecen la relajación lineal sin alterar el
+conjunto de soluciones enteras factibles \parencite{naddef2002branch}. Para el CVRP, las
+familias de cortes más relevantes derivan de la estructura poliédrica del problema:
+desigualdades de capacidad redondeada, desigualdades de capacidad enmarcada,
+desigualdades \textit{comb}, \textit{multistar} y \textit{hypotour}, entre otras
+\parencite{naddef1991branch}. El algoritmo de \textcite{lysgaard2004branch} integró estas
+familias en un único esquema computacional capaz de resolver por primera vez instancias
+del Set B de \textcite{augerat1995} previamente abiertas, como B-n50-k8, B-n66-k9 y
+B-n78-k10. \textcite{augerat1995} habían propuesto previamente un Branch and Cut basado
+en cortes de capacidad y aportaron el conjunto de instancias A y B que hoy forma parte
+estándar de CVRPLIB.
+
+\subsubsection{Branch and Price}
+
+\textit{Branch and Price} aborda el CVRP desde una formulación de partición de conjuntos
+en la que cada variable representa una ruta factible completa
+\parencite{tan2021vehicle}. Como el número de rutas factibles es exponencial, se recurre
+a generación de columnas: el problema maestro se resuelve sobre un subconjunto reducido
+de rutas y un subproblema de \textit{pricing} —típicamente un problema de camino más
+corto con restricciones de recursos— identifica nuevas rutas con costo reducido
+negativo. Este enfoque proporciona cotas inferiores generalmente más fuertes que las
+obtenidas por \textit{Branch and Cut} sobre formulaciones de aristas, a cambio de un
+subproblema de \textit{pricing} computacionalmente más exigente.
+
+\subsubsection{Branch, Cut and Price}
+
+La combinación de generación de columnas con planos de corte da lugar al esquema
+\textit{Branch, Cut and Price} (BCP), considerado el estado del arte actual para el
+CVRP. \textcite{fukasawa2006robust} propusieron un BCP robusto que extendió el tamaño
+de las instancias resueltas exactamente hasta 135 vértices, integrando cortes sobre la
+formulación original con generación de columnas sobre $q$-rutas.
+\textcite{pecin2017improved} introdujeron posteriormente cortes \textit{limited-memory}
+\textit{rank-1}, que permiten incorporar un mayor número de cortes sin incrementar
+proporcionalmente la complejidad del subproblema de \textit{pricing}; esta contribución
+permitió resolver instancias clásicas con hasta 420 clientes.
+
+\subsubsection{Programación dinámica}
+
+La programación dinámica fue históricamente uno de los primeros enfoques exactos
+explorados para el CVRP. \textcite{christofides1981exact} propusieron algoritmos
+basados en relajaciones de árbol de cubrimiento y de camino más corto, que permitieron
+resolver instancias de pequeño tamaño y dieron origen al conjunto E utilizado hasta hoy
+como banco de pruebas. En la actualidad, la programación dinámica rara vez se utiliza
+como método independiente para el CVRP, pero subsiste como componente esencial dentro
+del subproblema de \textit{pricing} de los algoritmos \textit{Branch and Price} y
+\textit{Branch, Cut and Price}.
+
+\subsection{Posicionamiento del enfoque adoptado}
+
+La progresión histórica desde \textit{Branch and Bound} clásico hacia
+\textit{Branch, Cut and Price} refleja un compromiso continuo entre la complejidad de la
+formulación, la fortaleza de la relajación lineal y la dificultad del subproblema
+auxiliar. Los métodos más sofisticados resuelven instancias considerablemente más
+grandes, pero su implementación requiere infraestructura algorítmica especializada
+—generación de columnas, separación de cortes poliédricos, etiquetado para
+\textit{pricing}— que excede el alcance de un primer informe centrado en programación
+matemática clásica.
+
+Por esta razón, el presente trabajo adopta como base metodológica el esquema de
+\textcite{laporte1983branch}, complementado con la generación iterativa de
+desigualdades de capacidad redondeada (RCI) sobre la formulación de aristas. Este
+enfoque permite ilustrar de forma transparente los conceptos centrales que articula el
+curso —relajación lineal, integralidad, cotas inferiores, ramificación, poda y
+separación de desigualdades válidas— sin requerir el aparato poliédrico ni los
+mecanismos de generación de columnas propios de los algoritmos contemporáneos. La
+resolución del subproblema entero en cada iteración se delega al solver
+COIN-OR CBC \parencite{pulp2011}, que internamente implementa \textit{Branch and Bound}
+sobre la formulación enriquecida iterativamente con los cortes generados.
+
+\subsection{Aplicaciones del CVRP en investigación operacional}
+
+Desde el punto de vista aplicado, el CVRP ha servido como modelo base para problemas de
+abastecimiento urbano, distribución de última milla, recolección de residuos,
+planificación de rutas de combustibles y despacho a puntos de servicio
+\parencite{tan2021vehicle}. En muchos de estos dominios, las versiones reales incorporan
+restricciones adicionales como ventanas de tiempo, flotas heterogéneas o múltiples
+depósitos; sin embargo, el CVRP sigue cumpliendo un rol metodológico central porque
+permite aislar el efecto de la capacidad vehicular y de la asignación de clientes a
+rutas. Por ello, continúa siendo un banco de pruebas privilegiado para comparar
+algoritmos exactos sobre instancias estandarizadas y soluciones de referencia.

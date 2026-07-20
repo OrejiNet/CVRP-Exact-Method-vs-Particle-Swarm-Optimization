@@ -1,0 +1,30 @@
+\clearpage
+\thispagestyle{empty}
+\begin{center}
+    \bfseries\fontsize{14}{16}\selectfont RESUMEN
+\end{center}
+\vspace{16pt}
+
+\noindent
+El \textit{Capacitated Vehicle Routing Problem} (CVRP) es un problema clásico de
+optimización combinatoria en el que se debe determinar un conjunto de rutas de costo
+mínimo para abastecer clientes con demandas conocidas mediante una flota homogénea de
+vehículos con capacidad limitada. En este informe se aborda el CVRP
+exclusivamente desde la perspectiva de los métodos exactos de programación matemática.
+Se revisa el panorama de algoritmos \textit{Branch and X} para el problema, abarcando
+\textit{Branch and Bound}, \textit{Branch and Cut}, \textit{Branch and Price} y
+\textit{Branch, Cut and Price}, y se justifica la adopción del esquema clásico de
+Laporte y Nobert (1983) como base metodológica del trabajo. El documento presenta la
+definición formal del CVRP, su formulación matemática como programa lineal entero sobre
+un grafo no dirigido, y procedimiento de resolución basado en la
+generación iterativa de desigualdades de capacidad sobre una relajación inicial con
+restricciones de grado. La implementación computacional, desarrollada en Python mediante PuLP y el
+solver COIN-OR CBC, fue evaluada sobre cinco instancias estándar de CVRPLIB
+(Sets E y A). El método certificó el óptimo en cuatro de ellas (gap 0\,\%) y,
+en la quinta, alcanzó una solución factible a 0{,}91\,\% del óptimo dentro del
+presupuesto de tiempo, evidenciando empíricamente el límite de escalabilidad
+del esquema clásico.
+
+\vspace{10pt}
+\noindent\textbf{Palabras clave:} CVRP; optimización combinatoria; programación lineal
+entera; métodos exactos; \textit{Branch and Bound}; CVRPLIB.

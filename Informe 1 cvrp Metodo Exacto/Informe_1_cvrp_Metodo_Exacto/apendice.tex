@@ -1,0 +1,28 @@
+\section{Notación principal}
+\label{apx:notacion}
+
+\begin{longtable}{P{3cm}P{11cm}}
+\toprule
+\textbf{Símbolo} & \textbf{Descripción} \\
+\midrule
+$n$ & Número total de nodos del grafo, incluyendo el depósito. \\
+$V$ & Conjunto de nodos del grafo, $V = \{1, 2, \dots, n\}$. \\
+$V \setminus \{1\}$ & Conjunto de clientes (nodos distintos del depósito). \\
+$E$ & Conjunto de aristas del grafo completo no dirigido. \\
+$c_{ij}$ & Costo de recorrer la arista $\{i,j\}$. \\
+$d_i$ & Demanda del cliente $i$. \\
+$D$ & Capacidad homogénea de cada vehículo. \\
+$m$ & Número de vehículos utilizados. \\
+$x_{ij}$ & Variable de decisión: número de veces que una solución utiliza la arista $\{i,j\}$. \\
+$S$ & Subconjunto de clientes usado en las desigualdades de capacidad. \\
+\bottomrule
+\end{longtable}
+
+\section{Instancias de referencia}
+\label{apx:instancias}
+
+Las familias A, B y E de CVRPLIB se identifican mediante nombres del tipo
+\texttt{A-n32-k5}, donde la letra indica la familia, \texttt{n} corresponde al número
+total de nodos incluyendo depósito y \texttt{k} al número de vehículos de la solución
+de referencia. Esta convención facilita la trazabilidad experimental y la comparación
+entre estudios.

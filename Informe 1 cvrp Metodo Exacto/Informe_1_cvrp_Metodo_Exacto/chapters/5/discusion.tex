@@ -1,0 +1,47 @@
+Los resultados obtenidos responden directamente a los objetivos planteados en
+la Sección~1.3. El procedimiento implementado --- formulación de dos índices
+de Laporte y Nobert con generación iterativa de desigualdades RCI, delegando
+cada modelo entero en el solver CBC --- demostró ser un método exacto
+operativo: certificó el óptimo global en cuatro instancias estándar de
+CVRPLIB, coincidiendo en todos los casos con las soluciones de referencia de
+la biblioteca. Esta coincidencia exacta valida simultáneamente la formulación,
+la convención de distancias adoptada y la correctitud de la separación de
+cortes.
+
+El hallazgo más relevante es la caracterización empírica del límite de
+escalabilidad. La progresión de tamaños evaluada muestra tres regímenes
+claramente diferenciados: las instancias pequeñas del Set E ($n \le 23$) se
+resuelven en segundos; \texttt{A-n32-k5} ($n=32$) requiere cerca de diez
+minutos pero cierra con certificado; y \texttt{A-n33-k5} ($n=33$) excede el
+presupuesto sin certificar. Que un único nodo adicional multiplique el
+esfuerzo por un orden de magnitud es la manifestación concreta del carácter
+$\mathcal{NP}$-hard del problema discutido en la Sección~1.2, y de la
+naturaleza exponencial de la familia de restricciones (5).
+
+La principal limitación observada es estructural y no de implementación: el
+esquema re-resuelve el modelo entero completo desde cero en cada iteración,
+descartando todo el trabajo de búsqueda previo, y separa cortes únicamente
+sobre soluciones enteras. La traza de \texttt{A-n32-k5} lo cuantifica: el
+costo por resolución crece desde centésimas de segundo hasta superar los 16
+segundos a medida que el modelo acumula cortes. Durante el desarrollo se
+evaluaron mejoras de ejecución que no alteran el método: la separación
+simultánea de múltiples cortes por iteración (componentes desconectadas,
+rutas sobrecargadas y sub-bloques anidados) redujo las iteraciones de 333 a
+99 y el tiempo en un 39\,\% sobre \texttt{A-n32-k5}, manteniendo el mismo
+óptimo certificado, lo que confirma que la estrategia de separación gobierna
+el costo total del esquema.
+
+Estas observaciones conectan directamente con la progresión histórica revisada
+en el Capítulo~2. La limitación de re-resolver desde cero es precisamente la
+que resuelve \textit{Branch and Cut}, al separar cortes dentro de un único
+árbol de búsqueda y sobre soluciones fraccionarias de la relajación lineal; y
+la dificultad creciente de las instancias mayores motiva los esquemas
+\textit{Branch, Cut and Price} que constituyen el estado del arte. Como
+recomendaciones para trabajo futuro se identifican: (i) integrar la separación
+de RCI dentro del árbol de búsqueda mediante \textit{callbacks} del solver, en
+lugar del ciclo externo de re-optimización; (ii) separar cortes sobre
+soluciones fraccionarias, fortaleciendo la relajación antes de ramificar; y
+(iii) para instancias fuera del alcance de los métodos exactos, abordar el
+problema mediante metaheurísticas, capaces de obtener soluciones de alta
+calidad sin certificado de optimalidad, línea que se desarrollará en el
+Informe Nro.~2.
