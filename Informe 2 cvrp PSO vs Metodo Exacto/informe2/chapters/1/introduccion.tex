@@ -24,16 +24,25 @@ sistema. Desde una perspectiva de modelación, el CVRP representa la interacció
 decisiones de partición de clientes en rutas y decisiones de ordenamiento de visitas
 dentro de cada recorrido, lo que lo convierte en un problema estructuralmente complejo.
 
-Dos contextos de aplicación ilustran esta relevancia. En distribución de retail y
-comercio mayorista, un centro de distribución debe abastecer múltiples locales o puntos
-de venta con una flota propia o subcontratada; aquí, el cumplimiento de capacidad y la
-consolidación eficiente de carga son determinantes para reducir costos de transporte y
-frecuencia de despachos. En recolección de residuos domiciliarios, los camiones deben
-visitar sectores urbanos completos, respetando la capacidad de compactación antes de
-retornar al depósito o estación de descarga; en este caso, la factibilidad operacional
-de cada ruta depende directamente de la demanda acumulada por sector. En ambos
-escenarios, el CVRP entrega una representación matemática suficientemente rica para
-apoyar decisiones tácticas y operacionales.
+Dos contextos de aplicación ilustran esta relevancia; ambos figuran entre los sectores
+donde el ruteo de vehículos se ha implantado de forma documentada en operaciones reales
+\parencite{golden2002routing}. El primero es la \textbf{distribución de bebidas, alimentos
+y productos de consumo hacia puntos de venta}: un centro de distribución debe abastecer
+múltiples locales con una flota propia o subcontratada, y el cumplimiento de la capacidad
+junto con la consolidación eficiente de carga determinan el costo de transporte y la
+frecuencia de despachos. \textcite{golden2002routing} documentan implantaciones en las
+industrias de bebidas, alimentos y lácteos, donde la adopción de sistemas de ruteo produjo
+reducciones de costo de dos dígitos porcentuales.
+
+El segundo es la \textbf{recolección de residuos sólidos domiciliarios}: los camiones
+recorren sectores urbanos completos y deben retornar al depósito o estación de descarga
+antes de superar su capacidad de compactación, de modo que la factibilidad operacional de
+cada ruta depende directamente de la demanda acumulada por sector. Se trata de un área con
+literatura propia y sostenida dentro del ruteo de vehículos: \textcite{belien2014municipal}
+revisan sistemáticamente los problemas de recolección y gestión de residuos municipales,
+clasificando la producción académica según el tipo de modelo de ruteo empleado. En ambos
+escenarios, el CVRP entrega una representación matemática suficientemente rica para apoyar
+decisiones tácticas y operacionales.
 
 \subsection{Fundamentos teóricos}
 

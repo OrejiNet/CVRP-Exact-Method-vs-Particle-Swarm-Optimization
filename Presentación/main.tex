@@ -172,84 +172,264 @@
   \end{frame}}
 
 % =====================================================================
-\section{El problema: CVRP}
+\section{Introducción}
+% =====================================================================
+
+\begin{frame}{Introducción: por qué importa el ruteo de vehículos}
+\begin{columns}[c]
+\column{0.52\textwidth}
+\begin{block}{Motivación}
+\scriptsize
+El transporte es uno de los mayores costos de una operación logística. Una planificación
+deficiente de rutas incrementa \azul{kilómetros recorridos}, combustible, horas-hombre y
+uso de flota. El \textbf{CVRP} es el modelo base para decidir \textbf{qué reparte cada
+vehículo} y \textbf{en qué orden}, respetando su capacidad.
+\end{block}
+\begin{exampleblock}{Dos contextos de aplicación \footnotesize (Golden et al., 2002)}
+\scriptsize
+\begin{itemize}\setlength\itemsep{3pt}
+  \item \textbf{Distribución de bebidas y alimentos:} un centro de distribución abastece
+  puntos de venta con flota propia; consolidar carga reduce despachos y costo por entrega.
+  \item \textbf{Recolección de residuos sólidos:} camiones recorren sectores urbanos y
+  deben volver al depósito antes de superar su capacidad de compactación
+  \gris{(Beliën et al., 2014)}.
+\end{itemize}
+\end{exampleblock}
+\column{0.44\textwidth}
+\centering
+\includegraphics[height=13mm]{iconos/camion.png}\\[8pt]
+\includegraphics[height=26mm]{iconos/repartidor.png}\\[6pt]
+{\scriptsize\gris{Del reparto urbano de última milla\\a la logística de distribución.}}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Introducción: objetivo del trabajo}
+\begin{ideaclave}
+\footnotesize
+Resolver el \textbf{CVRP} con dos enfoques de naturaleza distinta y \azul{contrastarlos}
+sobre un conjunto común de instancias: un \textbf{método clásico exacto} (Informe~1) y una
+\textbf{metaheurística} (Informe~2).
+\end{ideaclave}
+\vspace{6pt}
+\begin{columns}[T]
+\column{0.47\textwidth}
+\begin{block}{Informe 1 --- método clásico}
+\scriptsize
+\textit{Branch and Bound} con cortes de capacidad (RCI), formulación de Laporte \& Nobert
+(1983), resuelto con PuLP + COIN-OR CBC. \azul{Certifica optimalidad}.
+\end{block}
+\column{0.06\textwidth}
+\column{0.47\textwidth}
+\begin{alertblock}{Informe 2 --- metaheurística}
+\scriptsize
+\textit{Particle Swarm Optimization} con representación SR-1 (Ai \& Kachitvichyanukul,
+2009), parametrizada con Optuna. \naranja{Escala}, sin certificado.
+\end{alertblock}
+\end{columns}
+\vspace{8pt}
+{\footnotesize Se comparan en \textbf{calidad de solución} (GAP respecto al óptimo o BKS), \textbf{tiempo de ejecución} y \textbf{escalabilidad}.}
+\end{frame}
+
+% =====================================================================
+\section{Descripción del problema}
 % =====================================================================
 
 \begin{frame}{El CVRP en una imagen}
 \begin{columns}[c]
 \column{0.56\textwidth}
 \centering
-\begin{tikzpicture}[font=\scriptsize, scale=0.92, >=Stealth]
-  % deposito y clientes (siempre visibles)
+\begin{tikzpicture}[font=\scriptsize, scale=0.8, >=Stealth,
+  carga/.style={font=\tiny, rounded corners=1.5pt, inner sep=2pt, line width=0.4pt}]
+  % deposito (siempre visible)
   \node[star, star points=5, star point ratio=0.5, fill=UsachNaranja,
-        draw=UsachNaranja!80!black, minimum size=16pt, inner sep=0pt] (dep) at (3.1,2.4) {};
-  \node[below=0pt of dep, font=\tiny] {depósito};
-  \foreach \i/\x/\y in {1/0.6/4.0, 2/1.5/4.5, 3/0.4/3.0, 4/1.4/2.2,
-                        5/4.8/4.3, 6/5.6/3.4, 7/5.0/2.6,
-                        8/1.2/0.7, 9/2.6/0.4, 10/4.4/0.8}{
-    \fill[UsachGris] (\x,\y) circle (2.4pt);
+        draw=UsachNaranja!80!black, minimum size=15pt, inner sep=0pt] (dep) at (3.1,2.4) {};
+  \node[below=1pt of dep, font=\tiny, text=UsachGris] {depósito};
+  % la carga: cartas que salen del deposito
+  \node at (2.35,2.75) {\includegraphics[height=3.4mm]{iconos/sobre.png}};
+  \node at (3.85,2.75) {\includegraphics[height=3.4mm]{iconos/sobre.png}};
+  \node[font=\tiny, text=UsachGris, above=1pt] at (3.1,3.0) {cartas $d_i$};
+  % clientes (cada uno espera su carta)
+  \foreach \x/\y in {0.6/4.0, 1.5/4.5, 0.4/3.0, 1.4/2.2,
+                     4.8/4.3, 5.6/3.4, 5.0/2.6,
+                     1.2/0.7, 2.6/0.4, 4.4/0.8}{
+    \node at (\x,\y) {\includegraphics[height=4.2mm]{iconos/client.png}};
   }
-  % demandas de una ruta (aparecen con la ruta 1)
+  % ruta 1: un Pidgey la recorre
   \only<2->{
     \draw[UsachAzul, line width=1.2pt] (dep.center) -- (1.5,4.5) -- (0.6,4.0) -- (0.4,3.0) -- (1.4,2.2) -- (dep.center);
-    \node[text=UsachAzul, font=\tiny] at (0.6,4.35) {$d=7$};
-    \node[text=UsachAzul, font=\tiny] at (1.9,4.6) {$d=5$};
+    \node at (-0.15,3.5) {\includegraphics[height=8mm]{iconos/pidgey1.png}};
+    \node[carga, draw=UsachAzul, fill=UsachAzul!10, text=UsachAzul] at (-0.35,2.55) {$24 \le D$};
   }
   \only<3->{
     \draw[UsachNaranja!85!black, line width=1.2pt] (dep.center) -- (4.8,4.3) -- (5.6,3.4) -- (5.0,2.6) -- (dep.center);
+    \node at (6.3,4.2) {\includegraphics[height=8mm]{iconos/pidgey2.png}};
+    \node[carga, draw=UsachNaranja!80!black, fill=UsachNaranja!12, text=UsachNaranja!70!black] at (6.65,3.35) {$27 \le D$};
   }
   \only<4->{
     \draw[UsachGris!80!black, line width=1.2pt] (dep.center) -- (1.2,0.7) -- (2.6,0.4) -- (4.4,0.8) -- (dep.center);
+    \node at (5.5,0.6) {\includegraphics[height=8mm]{iconos/pidgey1.png}};
+    \node[carga, draw=UsachGris, fill=UsachGris!10, text=UsachGris] at (6.35,1.0) {$21 \le D$};
   }
-\end{tikzpicture}
+\end{tikzpicture}\\[2pt]
+% ─── iconografía ───
+{\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}cl cl@{}}
+\raisebox{-1pt}{\tikz\node[star, star points=5, star point ratio=0.5, fill=UsachNaranja,
+  draw=UsachNaranja!80!black, minimum size=7pt, inner sep=0pt]{};} &
+\gris{depósito} &
+\raisebox{-2pt}{\includegraphics[height=3.2mm]{iconos/client.png}} &
+\gris{cliente $i$} \\[2pt]
+\raisebox{-1pt}{\includegraphics[height=2.6mm]{iconos/sobre.png}} &
+\gris{carta: demanda $d_i$} &
+\raisebox{-2pt}{\includegraphics[height=4mm]{iconos/pidgey1.png}} &
+\gris{ave: vehículo; su etiqueta = carga de la ruta} \\
+\end{tabular}}
 \column{0.44\textwidth}
-\footnotesize
+\scriptsize
 \begin{block}{Los datos}
-$n$ clientes con \azul{demanda conocida}, un depósito, y $m$ vehículos idénticos de \azul{capacidad limitada} $D$.
+\scriptsize
+Cada \textbf{cliente} espera su carta, que pesa $d_i$; hay un \textbf{depósito} y $m$ \textbf{aves} con la misma \azul{carga máxima} $D$ (aquí $m=3$, $D=30$).
 \end{block}
 \only<2->{\begin{exampleblock}{La decisión}
-Diseñar \textbf{rutas} que partan y vuelvan al depósito, visiten a \textbf{cada cliente exactamente una vez}\ldots
+\scriptsize
+Repartir los clientes entre las aves y fijar el \textbf{orden} de visita de cada una.
 \end{exampleblock}}
 \only<3->{\begin{alertblock}{Las restricciones}
-\ldots sin que la demanda acumulada de una ruta exceda $D$, \naranja{minimizando la distancia total}.
+\scriptsize
+Ninguna ave carga más de $D$; cada cliente lo atiende \textbf{una sola} ave. Objetivo: \naranja{mínima distancia total volada}.
 \end{alertblock}}
 \end{columns}
 \vspace{2pt}
 \only<4->{\begin{ideaclave}
 \scriptsize
-El CVRP es \textbf{NP-hard}: combina \azul{particionar} clientes en rutas y \azul{ordenar} las visitas dentro de cada una. Por eso el curso lo aborda dos veces: método \textbf{exacto} (Informe 1) y \textbf{metaheurística} (Informe 2).
+Hay que decidir \azul{a la vez} \textbf{qué clientes atiende cada ave} (partición, limitada por el peso de las cartas) y \textbf{en qué orden los visita} (secuenciación, que fija la distancia). Ambas decisiones están \textbf{acopladas}: por eso el CVRP es \textbf{NP-hard}.
 \end{ideaclave}}
+\vspace{-2pt}
 \end{frame}
 
-\begin{frame}{Formulación y datos experimentales}
+% =====================================================================
+\section{Modelamiento matemático}
+% =====================================================================
+
+\begin{frame}{Modelamiento sobre grafos}
 \begin{columns}[c]
-\column{0.5\textwidth}
-\begin{block}{Función objetivo}
-\footnotesize
-Minimizar la distancia total recorrida por la flota:
-\[ \min \; z = \sum_{r \in \mathcal{R}} \sum_{\{i,j\} \in r} c_{ij} \]
-sujeto a: cada cliente en exactamente una ruta, y
-\[ \sum_{i \in r} d_i \le D \quad \forall\, r \in \mathcal{R}. \]
+\column{0.4\textwidth}
+\centering
+\begin{tikzpicture}[font=\scriptsize, >=Stealth]
+  \node[star, star points=5, star point ratio=0.5, fill=UsachNaranja,
+        draw=UsachNaranja!80!black, minimum size=10pt, inner sep=0pt] (v1) at (1.5,1.4) {};
+  \node[font=\tiny, text=UsachNaranja!80!black, right=2pt of v1] {$1$ (depósito)};
+  \foreach \i/\x/\y in {2/0.1/2.7, 3/2.9/2.7, 4/0.1/0.1, 5/2.9/0.1}{
+    \node[circle, draw=UsachAzul, fill=UsachAzul!12, minimum size=12pt, inner sep=0pt,
+          font=\tiny] (v\i) at (\x,\y) {$\i$};
+  }
+  \foreach \a/\b in {v1/v2, v1/v3, v1/v4, v1/v5, v2/v3, v2/v4, v3/v5, v4/v5}{
+    \draw[UsachGris!45, line width=0.5pt] (\a) -- (\b);
+  }
+  \node[font=\tiny, text=UsachGris] at (1.5,3.25) {$c_{ij}$ en cada arista};
+\end{tikzpicture}\\[6pt]
+{\scriptsize Grafo completo no dirigido $G=(V,E)$.}\\[8pt]
+{\tiny \gris{El modelo entero completo ---variables $x_{ij}$, restricciones de grado y
+cortes RCI--- está en el \textbf{anexo} del final.}}
+\column{0.06\textwidth}
+\column{0.54\textwidth}
+\begin{block}{Datos}
+\scriptsize
+$V=\{1,\dots,n\}$ nodos ($1$ = depósito); $c_{ij}$ costo de la arista $\{i,j\}$;
+$d_i\ge 0$ demanda del cliente $i$; flota de $m$ vehículos de capacidad $D$.
 \end{block}
-\column{0.5\textwidth}
-\begin{exampleblock}{Instancias (CVRPLIB, Sets A y E)}
-\footnotesize
-\begin{itemize}\setlength\itemsep{3pt}
-  \item \textbf{5 compartidas} con el Informe 1 ($n=13$ a $33$): comparación directa.
-  \item \textbf{4 mayores} ($n=60$ a $101$): escalabilidad, fuera del alcance del exacto.
-  \item Costos: distancia euclidiana redondeada (\texttt{EUC\_2D}).
-\end{itemize}
-\end{exampleblock}
-\vspace{10pt}
-\begin{ideaclave}
-\footnotesize
-Referencias: \azul{óptimo certificado} donde el exacto lo demostró; \azul{BKS} (mejor solución conocida) en el resto.
-\end{ideaclave}
+\begin{alertblock}{Función objetivo y restricciones}
+\scriptsize
+Una solución es un conjunto de rutas $\mathcal{R}$; \azul{cada $r \in \mathcal{R}$ es el ciclo
+de aristas que recorre un vehículo} desde el depósito y de vuelta. Se minimiza la distancia
+total de la flota:
+\[ \min \; z = \sum_{r \in \mathcal{R}} \sum_{\{i,j\} \in r} c_{ij} \]
+sujeto a que las rutas \textbf{particionen} a los clientes y respeten la capacidad:
+\[ \sum_{i \in r} d_i \le D \quad \forall\, r \in \mathcal{R}. \]
+\end{alertblock}
 \end{columns}
 \end{frame}
 
 % =====================================================================
-\section{Informe 1: método exacto}
+\section{Estado del arte}
+% =====================================================================
+
+\begin{frame}{Estado del arte: dónde se sitúa este trabajo}
+\centering
+\begin{tikzpicture}[font=\scriptsize, >=Stealth, line width=0.7pt,
+  raiz/.style={rectangle, rounded corners=2pt, draw=UsachGris, fill=UsachGris!10, align=center, inner sep=3pt},
+  fam/.style={rectangle, rounded corners=2pt, draw=UsachAzul, fill=UsachAzul!8, align=center, inner sep=3pt},
+  hoja/.style={rectangle, rounded corners=2pt, draw=UsachGris!60, fill=white, align=center, inner sep=3pt, font=\tiny},
+  elegido/.style={rectangle, rounded corners=2pt, draw=UsachNaranja!80!black, fill=UsachNaranja!15, align=center, inner sep=3pt, very thick}]
+
+  \node[raiz] (cvrp) at (0,0) {Métodos para el CVRP};
+  \node[fam, font=\scriptsize] (ex) at (-3.2,-1.1) {\textbf{Exactos}\\Informe 1};
+  \node[fam, font=\scriptsize] (mh) at (3.2,-1.1) {\textbf{Metaheurísticas}\\Informe 2};
+  \draw[->, UsachGris] (cvrp) -- (ex);
+  \draw[->, UsachGris] (cvrp) -- (mh);
+
+  \node[hoja] (bb) at (-3.2,-2.35) {\textbf{B\&B + cortes RCI}\\Laporte \& Nobert (1983);\\Lysgaard et al.\ (2004)};
+  \draw[->, UsachGris] (ex) -- (bb);
+
+  \node[hoja] (tray) at (1.2,-2.3) {\textbf{Trayectoria}\\Tabu Search, SA};
+  \node[hoja] (pob)  at (5.0,-2.3) {\textbf{Población}\\GA, ACO, \textbf{PSO}};
+  \draw[->, UsachGris] (mh) -- (tray);
+  \draw[->, UsachGris] (mh) -- (pob);
+
+  \node[elegido, font=\tiny] (sr) at (5.0,-3.6) {\textbf{PSO} + representación \textbf{SR-1}\\Ai \& Kachitvichyanukul (2009)};
+  \draw[->, UsachNaranja!80!black, very thick] (pob) -- (sr);
+\end{tikzpicture}
+
+\vspace{4pt}
+{\scriptsize Las metaheurísticas renuncian a la \azul{garantía de optimalidad} a cambio de \naranja{escalar} a instancias industriales (Tan \& Yeh, 2021). Revisión específica de PSO para ruteo: Marinakis et al.\ (2018).}
+\end{frame}
+
+\begin{frame}{Estado del arte: linaje de PSO y las tres vías de adaptación}
+\centering
+\begin{tikzpicture}[font=\tiny, >=Stealth]
+  \draw[UsachAzul!60, line width=1.2pt] (0,0) -- (11.4,0);
+  \foreach \x/\anio/\hito in {%
+    0/1995/{Kennedy \&\\Eberhart:\\PSO original},
+    2.85/1998/{Shi \&\\Eberhart:\\inercia $w$},
+    5.7/2002/{Clerc \&\\Kennedy:\\constricción $\chi$},
+    8.55/2007/{Poli et al.:\\síntesis del\\estado del arte},
+    11.4/2009/{\textbf{Ai \& Kachitv.:}\\\textbf{SR-1 para CVRP}}}{
+    \fill[UsachNaranja] (\x,0) circle (2.6pt);
+    \node[above=3pt, font=\tiny\bfseries, text=UsachNaranja!80!black] at (\x,0) {\anio};
+    \node[below=4pt, align=center, font=\tiny] at (\x,0) {\hito};
+  }
+\end{tikzpicture}
+
+\vspace{14pt}
+\begin{columns}[t]
+\column{0.31\textwidth}
+\begin{exampleblock}{1. Valor real}
+\scriptsize
+La partícula sigue continua; un \textbf{decodificador} la traduce a rutas.\\[3pt]
+\azul{$\blacktriangleright$ Vía adoptada (SR-1)}
+\end{exampleblock}
+\column{0.03\textwidth}
+\column{0.31\textwidth}
+\begin{block}{2. PSO discreto}
+\scriptsize
+Redefine la velocidad como secuencias de \textit{swaps} (Chen et al., 2006).\\[3pt]
+\gris{Descartada}
+\end{block}
+\column{0.03\textwidth}
+\column{0.31\textwidth}
+\begin{block}{3. Híbridos}
+\scriptsize
+PSO + ACO, o \textit{clustering} + PSO (Kao et al., 2012; Son \& Tan, 2021).\\[3pt]
+\gris{Descartada}
+\end{block}
+\end{columns}
+\vspace{8pt}
+{\scriptsize Se eligió la vía 1 porque \azul{preserva las ecuaciones canónicas de PSO} y permite aislar su comportamiento propio, sin la infraestructura extra de un híbrido.}
+\end{frame}
+
+% =====================================================================
+\section{Solución con método clásico}
 % =====================================================================
 
 \begin{frame}{La idea: Branch and Bound con cortes RCI}
@@ -276,11 +456,48 @@ Referencias: \azul{óptimo certificado} donde el exacto lo demostró; \azul{BKS}
 \end{itemize}
 \end{block}
 \begin{alertblock}{Cortes RCI}
-Los \textit{rounded capacity inequalities} se agregan \naranja{iterativamente} al detectar subrutas que violan capacidad: fortalecen la cota sin agrandar el modelo de entrada.
+Los \textit{rounded capacity inequalities} se agregan \naranja{iterativamente} al detectar subrutas que incumplen la capacidad: fortalecen la cota sin agrandar el modelo de entrada.
 \end{alertblock}
 \begin{ideaclave}
 Si el árbol se agota: \textbf{óptimo certificado}. Ese certificado es lo que la metaheurística no puede dar.
 \end{ideaclave}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Pseudocódigo: generación iterativa de cortes RCI}
+\begin{columns}[T]
+\column{0.52\textwidth}
+\scriptsize
+\begin{algorithm}[H]
+\begin{algorithmic}[1]
+\Procedure{Exacto-RCI}{instancia}
+  \State Construir grafo y matriz $c_{ij}$
+  \State Formular modelo entero
+  \Repeat
+    \State Resolver el modelo con \textbf{CBC}
+    \State Extraer las aristas activas
+    \State Buscar $S$ con RCI incumplida
+    \If{existe alguna RCI incumplida}
+      \State Agregar ese \textbf{corte RCI}
+    \EndIf
+  \Until{no queden RCI incumplidas}
+  \State \textbf{Devolver} rutas (\azul{óptimo certificado})
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+\column{0.48\textwidth}
+\begin{block}{El corte RCI}
+\scriptsize
+Queda incumplido si un subconjunto $S$ forma un subtour sin depósito, o si su carga excede $D$:
+\vspace{-4pt}
+\[ \sum_{i<j \in S} x_{ij} \;\le\; |S| - \left\lceil \frac{\sum_{i \in S} d_i}{D} \right\rceil \]
+\end{block}
+\begin{alertblock}{Por qué iterar}
+\scriptsize
+Las restricciones de capacidad son \textbf{exponenciales}: se agregan \azul{solo cuando la
+solución las incumple}. Pero cada corte obliga a \textbf{reoptimizar}: en \texttt{A-n33-k5}
+fueron \naranja{384 iteraciones y 2\,846 cortes}.
+\end{alertblock}
 \end{columns}
 \end{frame}
 
@@ -310,7 +527,7 @@ La tratabilidad se pierde de forma \textbf{abrupta}, no gradual: \azul{un solo c
 \end{frame}
 
 % =====================================================================
-\section{Informe 2: PSO para el CVRP}
+\section{Solución con metaheurística}
 % =====================================================================
 
 \begin{frame}{PSO en 30 segundos: tres ``tirones'' que se suman}
@@ -401,11 +618,14 @@ El desajuste entre un algoritmo \textbf{continuo} y un problema \textbf{combinat
   \draw[->, line width=1.2pt, UsachGris] (dec) -- (r);
 \end{tikzpicture}
 \end{columns}
-\vspace{6pt}
-\begin{ideaclave}
-\footnotesize
-Se descartaron el \textbf{PSO discreto} (redefine la velocidad como secuencias de \textit{swaps}) y los enfoques \textbf{híbridos} (complejidad adicional que impediría aislar el comportamiento propio de PSO).
-\end{ideaclave}
+\vspace{4pt}
+\begin{alertblock}{Ojo con la analogía}
+\scriptsize
+Una partícula \textbf{no} es un ave. Cada partícula codifica \azul{una solución completa}: qué
+cliente atiende \emph{cada} ave y en qué orden. En \texttt{A-n32-k5} ($m{=}5$), \textbf{una}
+partícula de 41 dimensiones decodifica a las \textbf{5 rutas} a la vez; el enjambre son
+$N{=}100$ \naranja{planes de reparto alternativos} compitiendo entre sí.
+\end{alertblock}
 \end{frame}
 
 \begin{frame}{Decodificación SR-1 paso a paso \footnotesize (ejemplo del paper: 6 clientes, 2 vehículos)}
@@ -460,6 +680,47 @@ Se descartaron el \textbf{PSO discreto} (redefine la velocidad como secuencias d
 \end{tikzpicture}
 \end{frame}
 
+\begin{frame}{Pseudocódigo: PSO para el CVRP (representación SR-1)}
+\begin{columns}[T]
+\column{0.58\textwidth}
+\begin{algorithm}[H]
+\tiny
+\begin{algorithmic}[1]
+\Procedure{PSO-CVRP}{instancia, parámetros}
+  \State Inicializar $\xx \sim U(0,1)^d$, \ $\vv \gets \mathbf{0}$
+  \For{cada partícula $i$}
+    \State Decodificar $\xx$ \textbf{a las $m$ rutas}; evaluar
+    \State $\pp \gets \xx$
+  \EndFor
+  \State $\pg \gets \arg\min_i \ \text{aptitud}(\pp)$
+  \For{$t \gets 1 \ldots T$}
+    \State $w \gets w_0 + \tfrac{t}{T}(w_f - w_0)$
+    \For{cada partícula $i$}
+      \State Actualizar $\vv$, $\xx$; acotar a $v_{\max}$ y $[0,1]$
+      \State Decodificar $\xx$; evaluar aptitud
+      \State \textbf{si} mejora: actualizar $\pp$ y $\pg$
+    \EndFor
+  \EndFor
+  \State \textbf{Devolver} rutas de $\pg$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+\column{0.42\textwidth}
+\begin{block}{Dónde entra SR-1}
+\scriptsize
+Las líneas de \textbf{decodificación} (4 y 12) son las \azul{únicas} específicas del CVRP:
+ahí el vector continuo se convierte en las $m$ rutas. \textbf{Todo lo demás es PSO
+canónico, sin modificar}.
+\end{block}
+\begin{alertblock}{Contabilidad del presupuesto}
+\scriptsize
+Cada decodificación es \textbf{una evaluación} de la función objetivo. Con
+$N{=}100$ y $T{=}500$: $100 \times 500 = 50\,000$ evaluaciones, el presupuesto fijado
+para todas las instancias.
+\end{alertblock}
+\end{columns}
+\end{frame}
+
 \begin{frame}{Parametrización con Optuna y diseño experimental}
 \begin{columns}[T]
 \column{0.55\textwidth}
@@ -496,15 +757,22 @@ $v_{\max}$ & tope velocidad & $0{,}38$ \\
 \bottomrule
 \end{tabular}
 \end{block}
+\begin{exampleblock}{Instancias (CVRPLIB, Sets A y E)}
+\scriptsize
+\begin{itemize}\setlength\itemsep{2pt}
+  \item \textbf{5 compartidas} con el Informe 1 ($n=13$ a $33$).
+  \item \textbf{4 mayores} ($n=60$ a $101$), fuera del alcance del exacto.
+\end{itemize}
+\end{exampleblock}
 \begin{ideaclave}
-\footnotesize
-Separar \azul{tuning} de \azul{evaluación} evita el sobreajuste de parámetros. GAP de tuning: $8{,}54\%$ promedio.
+\scriptsize
+Separar \azul{tuning} de \azul{evaluación} evita el sobreajuste. GAP de tuning: $8{,}54\%$.
 \end{ideaclave}
 \end{columns}
 \end{frame}
 
 % =====================================================================
-\section{Resultados y comparación}
+\section{Comparación de resultados}
 % =====================================================================
 
 \begin{frame}{El enjambre aprendiendo rutas (A-n32-k5, corrida real)}
@@ -645,17 +913,21 @@ Más allá de la dicotomía general, los datos revelan cuatro observaciones conc
 Laporte, G., \& Nobert, Y. (1983). A branch and bound algorithm for the capacitated vehicle routing problem. \emph{Operations Research Spektrum, 5}(2), 77--85.\par\smallskip
 Lysgaard, J., Letchford, A. N., \& Eglese, R. W. (2004). A new branch-and-cut algorithm for the capacitated vehicle routing problem. \emph{Mathematical Programming, 100}, 423--445.\par\smallskip
 Toth, P., \& Vigo, D. (Eds.). (2002). \emph{The Vehicle Routing Problem}. SIAM.\par\smallskip
-CVRPLIB (2024). \emph{Capacitated Vehicle Routing Problem Library}. \texttt{vrp.atd-lab.inf.puc-rio.br}.
+CVRPLIB (2024). \emph{Capacitated Vehicle Routing Problem Library}. \texttt{vrp.atd-lab.inf.puc-rio.br}.\par\medskip
+\textbf{Contextos de aplicación}\par\smallskip
+Golden, B. L., Assad, A. A., \& Wasil, E. A. (2002). Routing vehicles in the real world: applications in the solid waste, beverage, food, dairy, and newspaper industries. En \emph{The Vehicle Routing Problem} (pp.\ 245--286). SIAM.\par\smallskip
+Beliën, J., De Boeck, L., \& Van Ackere, J. (2014). Municipal solid waste collection and management problems: a literature review. \emph{Transportation Science, 48}(1), 78--102.
 \column{0.5\textwidth}
 \textbf{Metaheurística: PSO (Informe 2)}\par\smallskip
 Kennedy, J., \& Eberhart, R. (1995). Particle swarm optimization. \emph{Proc.\ IEEE ICNN}, 1942--1948.\par\smallskip
 Shi, Y., \& Eberhart, R. (1998). A modified particle swarm optimizer. \emph{Proc.\ IEEE CEC}, 69--73.\par\smallskip
 Clerc, M., \& Kennedy, J. (2002). The particle swarm: explosion, stability, and convergence. \emph{IEEE Trans.\ Evol.\ Comput., 6}(1), 58--73.\par\smallskip
 Poli, R., Kennedy, J., \& Blackwell, T. (2007). Particle swarm optimization: An overview. \emph{Swarm Intelligence, 1}(1), 33--57.\par\smallskip
-Ai, T. J., \& Kachitvichyanukul, V. (2009). Particle swarm optimization and two solution representations for solving the CVRP. \emph{Computers \& Industrial Engineering, 56}(1), 380--387.
+Ai, T. J., \& Kachitvichyanukul, V. (2009). Particle swarm optimization and two solution representations for solving the CVRP. \emph{Computers \& Industrial Engineering, 56}(1), 380--387.\par\medskip
+\textbf{Herramientas}\par\smallskip
+\emph{NumPy} (Harris et al., 2020), \emph{Numba} (Lam et al., 2015), \emph{Optuna} (Akiba et al., 2019).\par\medskip
+{\tiny \gris{\textbf{Iconos:} Pidgey \textcopyright\ Nintendo / Game Freak, uso académico ilustrativo; sobre, camión y cliente: bancos de imágenes de uso libre.}}
 \end{columns}
-\vspace{4pt}
-{\tiny \gris{\textbf{Herramientas:} Harris et al.\ (2020), \emph{NumPy}, Nature 585, 357--362; Lam et al.\ (2015), \emph{Numba}, Proc.\ LLVM-HPC; Akiba et al.\ (2019), \emph{Optuna}, Proc.\ ACM SIGKDD, 2623--2631.}}
 \end{frame}
 
 % ─── CIERRE ──────────────────────────────────────────────────────────
@@ -673,6 +945,79 @@ Cristopher Angulo Ahumada\\[4pt]
 % ─── APÉNDICE ────────────────────────────────────────────────────────
 % =====================================================================
 \appendix
+
+\begin{frame}[noframenumbering]{Anexo (1/2): variables, objetivo y restricciones de grado}
+\footnotesize
+\begin{columns}[T]
+\column{0.5\textwidth}
+\begin{block}{Variables de decisión}
+Formulación simétrica de dos índices de Laporte \& Nobert (1983):
+\[ x_{ij} = \text{veces que la solución usa } \{i,j\} \]
+\vspace{-14pt}
+
+\gris{No es una variable binaria de asignación cliente--vehículo: el modelo no distingue
+\textit{qué} vehículo hace cada ruta, porque la flota es homogénea.}
+\end{block}
+\begin{block}{Función objetivo}
+Distancia total recorrida por la flota:
+\vspace{-4pt}
+\[ \min \; z = \sum_{\{i,j\} \in E} c_{ij}\, x_{ij} \]
+\end{block}
+\column{0.5\textwidth}
+\begin{block}{Restricciones de grado}
+Depósito: salen y vuelven $m$ vehículos, por lo que su grado es $2m$:
+\vspace{-4pt}
+\[ \sum_{j=2}^{n} x_{1j} = 2m \]
+\vspace{-6pt}
+
+Cada cliente $k=2,\dots,n$ se visita una sola vez, es decir, tiene grado $2$:
+\vspace{-4pt}
+\[ \sum_{i<k} x_{ik} + \sum_{j>k} x_{kj} = 2 \]
+\end{block}
+\begin{block}{Dominio de las variables}
+\[ x_{ij} \in \{0,1\},\qquad x_{1j} \in \{0,1,2\} \]
+\vspace{-12pt}
+
+\gris{para $i,j \in V\setminus\{1\}$, $i<j$. El valor $2$ es la ruta que atiende a un solo
+cliente: se recorre la arista depósito--cliente de ida y de vuelta.}
+\end{block}
+\end{columns}
+\end{frame}
+
+\begin{frame}[noframenumbering]{Anexo (2/2): capacidad y eliminación de subtours}
+\footnotesize
+\begin{columns}[T]
+\column{0.5\textwidth}
+\begin{alertblock}{Por qué no bastan los grados}
+Las restricciones de grado son \textbf{necesarias pero no suficientes}: admiten soluciones
+con ciclos desconectados del depósito. Para descartarlos e imponer a la vez la capacidad,
+se agrega, para todo $S \subseteq V\setminus\{1\}$ con $|S| \ge 2$:
+\vspace{-4pt}
+\[ \sum_{i \in S}\sum_{j \notin S} x_{ij} \;\ge\; 2\left\lceil \frac{\sum_{i\in S} d_i}{D} \right\rceil \]
+\vspace{-8pt}
+
+\gris{Si la demanda de $S$ necesita $\lceil \cdot \rceil$ vehículos, deben cruzar su
+frontera al menos el doble de aristas.}
+\end{alertblock}
+\column{0.5\textwidth}
+\begin{alertblock}{Forma equivalente: RCI}
+En presencia de los grados, la desigualdad anterior equivale a la \textit{rounded capacity
+inequality} (Lysgaard et al., 2004), que es la que se implementó:
+\vspace{-4pt}
+\[ \sum_{i,j \in S;\, i<j} x_{ij} \;\le\; |S| - \left\lceil \frac{\sum_{i\in S} d_i}{D} \right\rceil \]
+\vspace{-8pt}
+
+\gris{Familia de tamaño \naranja{exponencial} en $n$: por eso se genera \textbf{bajo
+demanda}, un corte por iteración, y no de antemano.}
+\end{alertblock}
+\begin{ideaclave}
+\scriptsize
+En PSO nada de esto se impone como restricción: el decodificador SR-1
+\textbf{rechaza toda inserción que supere $D$}, así la \azul{factibilidad sale por
+construcción}.
+\end{ideaclave}
+\end{columns}
+\end{frame}
 
 \begin{frame}[noframenumbering]{Apéndice: resultados completos de PSO (31 corridas por instancia)}
 \centering
