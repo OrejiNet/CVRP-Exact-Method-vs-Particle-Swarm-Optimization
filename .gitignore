@@ -5,7 +5,7 @@ CLAUDE.md
 # Material de referencia con derechos de terceros (papers, material del curso)
 Contexto/
 Ayudantia/
-Presentación/
+Ejemplo Presentaciones/
 
 # Python
 __pycache__/
@@ -30,6 +30,9 @@ env/
 *.fdb_latexmk
 *.lof
 *.lot
+*.nav
+*.snm
+*.vrb
 
 # OS
 .DS_Store
