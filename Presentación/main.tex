@@ -330,14 +330,16 @@ Hay que decidir \azul{a la vez} \textbf{qué clientes atiende cada ave} (partici
   \node[font=\tiny, text=UsachGris] at (1.5,3.25) {$c_{ij}$ en cada arista};
 \end{tikzpicture}\\[6pt]
 {\scriptsize Grafo completo no dirigido $G=(V,E)$.}\\[8pt]
-{\tiny \gris{El modelo entero completo ---variables $x_{ij}$, restricciones de grado y
-cortes RCI--- está en el \textbf{anexo} del final.}}
+{\tiny \gris{En el \textbf{anexo} del final: glosario de símbolos y el modelo entero
+completo (variables $x_{ij}$, restricciones de grado y cortes RCI).}}
 \column{0.06\textwidth}
 \column{0.54\textwidth}
 \begin{block}{Datos}
 \scriptsize
-$V=\{1,\dots,n\}$ nodos ($1$ = depósito); $c_{ij}$ costo de la arista $\{i,j\}$;
-$d_i\ge 0$ demanda del cliente $i$; flota de $m$ vehículos de capacidad $D$.
+\azul{$V=\{1,\dots,n\}$} es el conjunto de \textbf{nodos}: el $1$ es el depósito y
+$2,\dots,n$ los clientes. \azul{$E$} es el de \textbf{aristas}, una por cada par de nodos.
+Cada arista $\{i,j\}$ tiene costo $c_{ij}$; cada cliente $i$, demanda $d_i\ge 0$. La flota
+son $m$ vehículos, todos de capacidad $D$.
 \end{block}
 \begin{alertblock}{Función objetivo y restricciones}
 \scriptsize
@@ -895,7 +897,7 @@ Más allá de la dicotomía general, los datos revelan cuatro observaciones conc
 \textbf{Trabajo futuro} (derivado directamente de los hallazgos anteriores):
 \begin{itemize}\setlength\itemsep{4pt}
   \item Variante \textbf{GLNPSO} con vecindario social (\textit{lbest}/\textit{nbest}) para cerrar la brecha de GAP frente a la literatura (hallazgo 2).
-  \item \textbf{Escalar} el número de iteraciones con la dimensión $n{+}2m$, en vez de fijarlo por presupuesto (hallazgo 4).
+  \item \textbf{Escalar} el número de iteraciones con la dimensión $(n{-}1){+}2m$, en vez de fijarlo por presupuesto (hallazgo 4).
   \item Ampliar el \textbf{tuning} a todo el rango de tamaños y estructuras evaluadas (hallazgos 3 y 4).
 \end{itemize}
 \end{paperbox}
@@ -945,6 +947,68 @@ Cristopher Angulo Ahumada\\[4pt]
 % ─── APÉNDICE ────────────────────────────────────────────────────────
 % =====================================================================
 \appendix
+
+\begin{frame}[noframenumbering]{Anexo: glosario de símbolos}
+\scriptsize
+\begin{columns}[T]
+\column{0.54\textwidth}
+\textbf{\azul{Instancia y solución}}\par\smallskip
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}l p{0.64\linewidth}@{}}
+\toprule
+$G=(V,E)$ & grafo completo no dirigido \\
+$V=\{1,\dots,n\}$ & nodos ($1$ = depósito, resto clientes) \\
+$E$ & aristas (todos los pares de nodos) \\
+$n$ & cantidad de nodos, depósito incluido \\
+$m$ & cantidad de vehículos de la flota \\
+$D$ & capacidad de cada vehículo \\
+$d_i$ & demanda del cliente $i$ \\
+$c_{ij}$ & costo (distancia) de la arista $\{i,j\}$ \\
+$\mathcal{R}$ & conjunto de rutas de una solución \\
+$r$ & ruta: ciclo cerrado desde el depósito \\
+$z$ & objetivo: distancia total de la flota \\
+\bottomrule
+\end{tabular}
+\par\medskip
+\textbf{\azul{Modelo entero (método exacto)}}\par\smallskip
+\begin{tabular}{@{}l p{0.64\linewidth}@{}}
+\toprule
+$x_{ij}$ & veces que se usa la arista $\{i,j\}$ \\
+$S$ & subconjunto de clientes (cortes RCI) \\
+$|S|$ & cantidad de clientes en $S$ \\
+RCI & \textit{rounded capacity inequality} \\
+\bottomrule
+\end{tabular}
+\column{0.46\textwidth}
+\textbf{\azul{PSO}}\par\smallskip
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}l p{0.70\linewidth}@{}}
+\toprule
+$\xx$ & posición de la partícula $i$ \\
+$\vv$ & velocidad de la partícula $i$ \\
+$\pp$ & mejor posición propia (\textit{pbest}) \\
+$\pg$ & mejor del enjambre (\textit{gbest}) \\
+$N$ & tamaño del enjambre \\
+$T$ & cantidad de iteraciones \\
+$t$ & iteración actual, $t=1,\dots,T$ \\
+$w$ & inercia: decrece de $w_0$ a $w_f$ \\
+$c_1,c_2$ & coeficientes cognitivo y social \\
+$\mathbf{r}_1,\mathbf{r}_2$ & vectores aleatorios en $[0,1]$ \\
+$v_{\max}$ & tope de velocidad (fracción del rango) \\
+SR-1 & representación de valor real de Ai \& Kachitvichyanukul (2009): $(n{-}1)+2m$ dimensiones \\
+\bottomrule
+\end{tabular}
+\par\medskip
+\textbf{\azul{Métricas}}\par\smallskip
+\begin{tabular}{@{}l p{0.70\linewidth}@{}}
+\toprule
+GAP\,\% & $100\,(z - z^{\text{ref}})/z^{\text{ref}}$ \\
+$z^{\text{ref}}$ & óptimo certificado, o BKS si no hay \\
+BKS & \textit{best known solution} \\
+\bottomrule
+\end{tabular}
+\end{columns}
+\end{frame}
 
 \begin{frame}[noframenumbering]{Anexo (1/2): variables, objetivo y restricciones de grado}
 \footnotesize
